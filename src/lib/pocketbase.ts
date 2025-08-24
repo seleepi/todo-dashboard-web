@@ -157,13 +157,16 @@ export interface PocketBaseEvent {
 // Real-time subscription helpers
 export const realtimeHelpers = {
   // Subscribe to dashboard changes
-  subscribeToDashboard(dashboardId: string, callback: (data: Record<string, unknown>) => void) {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  subscribeToDashboard(dashboardId: string, callback: (data: any) => void) {
     return pb.collection('dashboards').subscribe(dashboardId, callback);
   },
 
   // Subscribe to widget changes
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subscribeToWidgets(dashboardId: string, callback: (event: PocketBaseEvent) => void) {
-    return pb.collection('widgets').subscribe('*', (e) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    return pb.collection('widgets').subscribe('*', (e: any) => {
       // Only notify for widgets belonging to this dashboard
       if (e.record.dashboard === dashboardId) {
         callback(e);
