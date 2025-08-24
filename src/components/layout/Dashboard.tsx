@@ -6,7 +6,7 @@ import { WidgetComponent } from '@/components/widgets/WidgetComponent';
 import { AddWidgetButton } from '@/components/layout/AddWidgetButton';
 import { GridOverlay } from '@/components/layout/GridOverlay';
 import { getNextGridPosition, getDefaultWidgetSize } from '@/utils/grid';
-import { pb, realtimeHelpers } from '@/lib/pocketbase';
+import { pb, realtimeHelpers, PocketBaseEvent } from '@/lib/pocketbase';
 
 interface DashboardProps {
   dashboardId?: string;
@@ -43,7 +43,7 @@ export function Dashboard({ dashboardId, initialState }: DashboardProps) {
     if (!dashboardId) return;
 
     try {
-      const unsubscribe = realtimeHelpers.subscribeToWidgets(dashboardId, (event) => {
+      const unsubscribe = realtimeHelpers.subscribeToWidgets(dashboardId, (event: PocketBaseEvent) => {
         console.log('Real-time event:', event);
         
         switch (event.action) {

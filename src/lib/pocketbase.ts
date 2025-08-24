@@ -34,7 +34,7 @@ export interface WidgetRecord {
   position_y: number;
   size_width: number;
   size_height: number;
-  data: any; // JSON data for widget content
+  data: Record<string, unknown>; // JSON data for widget content
   collapsed?: boolean;
   created: string;
   updated: string;
@@ -148,15 +148,21 @@ export const widgetHelpers = {
   }
 };
 
+// PocketBase realtime event types
+export interface PocketBaseEvent {
+  action: 'create' | 'update' | 'delete';
+  record: WidgetRecord;
+}
+
 // Real-time subscription helpers
 export const realtimeHelpers = {
   // Subscribe to dashboard changes
-  subscribeToDashboard(dashboardId: string, callback: (data: any) => void) {
+  subscribeToDashboard(dashboardId: string, callback: (data: Record<string, unknown>) => void) {
     return pb.collection('dashboards').subscribe(dashboardId, callback);
   },
 
   // Subscribe to widget changes
-  subscribeToWidgets(dashboardId: string, callback: (data: any) => void) {
+  subscribeToWidgets(dashboardId: string, callback: (event: PocketBaseEvent) => void) {
     return pb.collection('widgets').subscribe('*', (e) => {
       // Only notify for widgets belonging to this dashboard
       if (e.record.dashboard === dashboardId) {
