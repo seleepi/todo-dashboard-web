@@ -94,12 +94,12 @@ npm run dev
 1. Access your PocketBase admin at `https://your-pocketbase-app.railway.app/_/`
 2. Create admin account
 3. Follow `pocketbase-setup.md` to create collections
-4. Your app will be live at `https://your-frontend-app.railway.app`
+4. Your app will be live at `https://todo-dashboard.up.railway.app`
 
-### Production URLs (after deployment)
-- Frontend: `https://your-frontend.railway.app`
-- Backend: `https://your-pocketbase.railway.app`
-- Admin Panel: `https://your-pocketbase.railway.app/_/`
+### Production URLs
+- Frontend: `https://todo-dashboard.up.railway.app`
+- Backend: `https://your-pocketbase-service.railway.app` (check Railway dashboard)
+- Admin Panel: `https://your-pocketbase-service.railway.app/_/`
 
 ## Features
 
@@ -350,29 +350,146 @@ Target completion: October 15, 2025
   - API security rules for user data isolation
   - Step-by-step admin panel configuration guide
 
+#### 11. Railway Deployment - ✅ COMPLETED
+**Date**: August 24, 2025
+
+- [x] **PocketBase Railway Deployment Configuration**
+  - Created `Dockerfile.pocketbase` for containerized PocketBase deployment
+  - Added Railway configuration with proper port binding and start commands
+  - Configured PocketBase to serve on Railway's dynamic port assignment
+  - Set up database and migrations copying for persistent data
+- [x] **Dual Service Railway Setup**
+  - Frontend service: Auto-detected Next.js deployment
+  - Backend service: Custom Dockerfile-based PocketBase deployment
+  - Both services deployed from same GitHub repository
+  - No root directory configuration needed
+- [x] **Live Production Deployment**
+  - Frontend successfully deployed: `https://todo-dashboard.up.railway.app`
+  - Backend service deployed with PocketBase
+  - Custom domain configuration tested (opted for Railway subdomain)
+  - Production environment fully operational
+
+#### 12. Railway Deployment Issues - ⚠️ IN PROGRESS
+**Date**: August 24, 2025
+
+**Problem Identified**: Single repository with dual service deployment configuration conflicts
+
+- **Issue**: PocketBase service (`pocketbase-todo-dashboard.up.railway.app`) serving Next.js frontend instead of PocketBase
+- **Root Cause**: `railway.json` with NIXPACKS builder affecting both services
+- **Attempted Solutions**:
+  - Custom Build Command with Docker: Failed (Docker not available in NIXPACKS build environment)
+  - Build Command Tried: `docker build -f Dockerfile.pocketbase -t pocketbase . && docker run -p $PORT:$PORT pocketbase ./pocketbase serve --http=0.0.0.0:$PORT`
+  - Error: `/bin/bash: line 1: docker: command not found`
+
+**Current Status**:
+- Frontend: ✅ Working at `https://todo-dashboard.up.railway.app`
+- Backend: ❌ Serving wrong application (Next.js instead of PocketBase)
+- Admin Panel: ❌ Not accessible at `https://pocketbase-todo-dashboard.up.railway.app/_/`
+
+**Technical Analysis**:
+- Railway's NIXPACKS builder doesn't support nested Docker builds
+- Single `railway.json` configuration applies to both services
+- Cannot override start command when using `railway.json`
+- Service-specific configuration requires separate repositories or different approach
+
 ### Future Work: Complete Backend Integration
 
-#### Phase A: Database Schema Setup
+#### Phase A: Fix Railway Deployment Architecture
+**Priority: HIGH**
+- [ ] **Option 1: Separate Repositories**
+  - Create separate GitHub repository for PocketBase backend
+  - Deploy PocketBase service from dedicated backend repo
+  - Keep frontend in current repository
+  - Configure cross-origin resource sharing (CORS)
+
+- [ ] **Option 2: Railway Service Reconfiguration**
+  - Remove `railway.json` and use Railway dashboard manual configuration
+  - Set PocketBase service to use Dockerfile builder manually
+  - Configure start command through Railway dashboard only
+  - Test service isolation
+
+- [ ] **Option 3: Monorepo with Service Detection**
+  - Restructure repository with separate `frontend/` and `backend/` directories
+  - Use Railway's root directory configuration for service targeting
+  - Create service-specific configuration files
+
+#### Phase B: Database Schema Setup (After Backend Fix)
 - [ ] Create admin account in PocketBase admin panel
 - [ ] Configure Users collection (verify auth fields)
 - [ ] Create Dashboards collection with user relations
 - [ ] Create Widgets collection with dashboard relations
 - [ ] Set up API security rules for data isolation
 - [ ] Test collections with sample data
+- [ ] Create test user account (`test@gmail.com` / `12345678`)
 
-#### Phase B: Frontend Integration
+#### Phase C: Frontend Integration
+- [ ] Configure frontend environment variable (`NEXT_PUBLIC_POCKETBASE_URL`)
 - [ ] Create authentication UI components (login/signup forms)
 - [ ] Implement dashboard persistence (save/load dashboard state)
 - [ ] Add real-time synchronization for collaborative editing
 - [ ] Handle offline/online state management
 - [ ] Add data validation and error handling
 
-#### Phase C: Enhanced Features
+#### Phase D: Enhanced Features
 - [ ] Weather API integration for live weather data
 - [ ] Photo upload functionality for text widgets
 - [ ] Google OAuth integration
 - [ ] Dashboard sharing and templates
 - [ ] Export/import dashboard functionality
+
+## Current Deployment URLs
+
+### Working
+- **Frontend**: `https://todo-dashboard.up.railway.app` ✅
+
+### Issues
+- **Backend**: `https://pocketbase-todo-dashboard.up.railway.app` ❌ (serves frontend instead of PocketBase)
+- **Admin Panel**: `https://pocketbase-todo-dashboard.up.railway.app/_/` ❌ (not accessible)
+
+### Railway Deployment Problem Analysis & Solutions
+
+#### What's Actually Happening
+**"PocketBase service running Next.js instead of PocketBase"** means:
+- You have **2 Railway services** from the same repo
+- **Service 1** (frontend): Should run Next.js ✅ - working correctly 
+- **Service 2** (backend): Should run PocketBase ❌ - but it's also running Next.js
+
+Both services are building and running the **same Next.js app** instead of different applications.
+
+**"NIXPACKS doesn't support Docker"** means:
+- Railway's default builder (NIXPACKS) auto-detects your project type
+- It saw Next.js files and built Next.js for both services
+- When you tried Docker commands to build PocketBase, NIXPACKS environment doesn't have Docker installed
+- So the command `docker build -f Dockerfile.pocketbase` failed
+
+#### Solution Options
+
+**Option 1: Fix Railway Configuration (RECOMMENDED)**
+- Keep single repo 
+- Configure Railway services manually (not auto-detection)
+- Set backend service to use Dockerfile builder
+- Much simpler than separate repos
+
+**Option 2: Separate Repositories**
+- Create separate GitHub repos for frontend/backend
+- Each has its own `railway.json`
+- More complex to maintain, sync changes
+
+**Option 3: Change Platform**
+- Railway is actually good - the issue is configuration, not Railway
+- Other platforms (Vercel, Render, Fly.io) would have similar issues with single-repo dual-service setup
+
+#### Recommended Fix Steps
+1. **Remove conflicting `railway.json`** 
+2. **Manually configure backend service** in Railway dashboard to use Dockerfile
+3. **Set correct start commands** for each service
+
+### Next Session Priority
+1. Fix Railway backend service configuration (Option 1 approach)
+2. Access PocketBase admin panel
+3. Set up database collections
+4. Create test user accounts
+5. Test production authentication
 
 ### Future Enhancements
 - [ ] Mobile responsive optimizations
