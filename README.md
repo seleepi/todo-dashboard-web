@@ -442,9 +442,9 @@ Target completion: October 15, 2025
 ### Working
 - **Frontend**: `https://todo-dashboard.up.railway.app` ✅
 
-### Issues
-- **Backend**: `https://pocketbase-todo-dashboard.up.railway.app` ❌ (serves frontend instead of PocketBase)
-- **Admin Panel**: `https://pocketbase-todo-dashboard.up.railway.app/_/` ❌ (not accessible)
+### Working ✅
+- **Backend**: `https://todo-dashboard-pocketbase.up.railway.app` ✅ (PocketBase API)
+- **Admin Panel**: `https://todo-dashboard-pocketbase.up.railway.app/_/` ✅ (accessible)
 
 ### Railway Deployment Problem Analysis & Solutions
 
@@ -484,12 +484,114 @@ Both services are building and running the **same Next.js app** instead of diffe
 2. **Manually configure backend service** in Railway dashboard to use Dockerfile
 3. **Set correct start commands** for each service
 
+#### Railway Deployment Debug Workflow - COMPLETED ✅
+**Date**: August 28, 2025
+
+### Problems Encountered & Root Causes
+
+#### Problem 1: Both Services Running Next.js ❌
+**Symptom**: Backend service at `pocketbase-todo-dashboard.up.railway.app` served Next.js frontend instead of PocketBase API
+
+**Root Cause**: Single `railway.json` with NIXPACKS builder applied to both services
+- Railway auto-detected Next.js and built it for both frontend and backend services
+- Single repository with dual services caused configuration conflicts
+
+**Our Mistake**: Using single configuration file for multiple services with different requirements
+
+#### Problem 2: 502 Bad Gateway Errors ❌
+**Symptom**: Both frontend and backend services showed 502 errors after attempting fixes
+
+**Root Cause**: Conflicting Railway configurations
+- `railway.json` and Railway dashboard settings conflicting
+- Both services trying to use same build configuration
+
+**Our Mistake**: Not understanding Railway's service isolation requirements
+
+#### Problem 3: PORT Variable Not Expanding ❌
+**Symptom**: PocketBase logs showed literal `$PORT` instead of actual port number
+```
+Error: listen tcp: lookup tcp/$PORT: unknown port
+```
+
+**Root Cause**: Multiple configuration conflicts
+1. **Dockerfile CMD exec form** doesn't expand environment variables
+2. **railway.json startCommand** conflicting with Dockerfile CMD
+3. Railway was executing startCommand instead of Dockerfile CMD
+
+**Our Mistakes**: 
+- Using Docker exec form `CMD ["command"]` instead of shell form for variable expansion
+- Having conflicting commands in both railway.json and Dockerfile
+- Not understanding Railway's command precedence (railway.json overrides Dockerfile)
+
+### Solution Workflow - What Finally Worked ✅
+
+#### Step 1: Separate Repositories Approach
+**Action**: Created separate GitHub repository for PocketBase backend
+- **Frontend repo**: `seleepi/todo-dashboard-web` (Next.js only)  
+- **Backend repo**: `seleepi/todo-dashboard-pocketbase` (PocketBase only)
+
+**Result**: Clean separation, no configuration conflicts
+
+#### Step 2: Fixed Railway Service Configuration
+**Action**: 
+- Deleted old Railway backend service
+- Created new Railway service connected to PocketBase-only repository
+- Railway correctly detected single-purpose repository
+
+#### Step 3: Resolved PORT Variable Issues
+**Final working configuration**:
+
+**Dockerfile.pocketbase**:
+```dockerfile
+# Use exec form with hardcoded port
+CMD ["./pocketbase", "serve", "--http=0.0.0.0:8080"]
+```
+
+**railway.json**:
+```json
+{
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "Dockerfile.pocketbase"
+  },
+  "deploy": {
+    // NO startCommand - let Dockerfile handle it
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10
+  }
+}
+```
+
+**Key Insights**:
+- **Remove railway.json startCommand** - it overrides Dockerfile CMD
+- **Use hardcoded port 8080** - Railway handles external routing automatically
+- **Don't mix shell and exec forms** - stick to exec form for consistency
+
+### Debug Methodology That Worked
+
+1. **Isolate the Problem**: Separate repositories eliminated configuration conflicts
+2. **Simplify Configuration**: Remove all complex variable handling, use hardcoded values
+3. **Single Source of Truth**: Either railway.json OR Dockerfile handles startup, not both
+4. **Test Incrementally**: Each change tested immediately with Railway logs
+5. **Read Error Messages Carefully**: `lookup tcp/$PORT` clearly showed variable wasn't expanding
+
+### Production URLs - Final Working State ✅
+- **Frontend**: `https://todo-dashboard.up.railway.app` (Next.js)
+- **Backend API**: `https://todo-dashboard-pocketbase.up.railway.app` (PocketBase)
+- **Admin Panel**: `https://todo-dashboard-pocketbase.up.railway.app/_/` (PocketBase Admin)
+
+### Lessons Learned
+1. **Single-repo dual-service deployment is complex** - separate repos are simpler
+2. **Railway configuration precedence**: railway.json startCommand > Dockerfile CMD
+3. **Environment variable expansion**: Use shell form CMD or hardcode values
+4. **Railway auto-routing**: Internal port 8080 → external HTTPS automatically
+5. **Debug systematically**: Isolate problems, test incremental changes
+
 ### Next Session Priority
-1. Fix Railway backend service configuration (Option 1 approach)
-2. Access PocketBase admin panel
-3. Set up database collections
-4. Create test user accounts
-5. Test production authentication
+1. Set up database collections (Users, Dashboards, Widgets) ✅ Ready to proceed
+2. Create test user account (test@gmail.com / 12345678)
+3. Configure frontend environment variables with production URLs
+4. Test production authentication and real-time sync
 
 ### Future Enhancements
 - [ ] Mobile responsive optimizations
