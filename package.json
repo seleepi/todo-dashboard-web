@@ -24,5 +24,19 @@
     "eslint-config-next": "15.5.0",
     "tailwindcss": "^4",
     "typescript": "^5"
-  }
+  },
+  "description": "A personalized dashboard application where users can place various widgets including TODO lists, time, weather, and YouTube player widgets.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seleepi/todo-dashboard-web.git"
+  },
+  "keywords": [],
+  "author": "selee_pi",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/seleepi/todo-dashboard-web/issues"
+  },
+  "homepage": "https://github.com/seleepi/todo-dashboard-web#readme"
 }
