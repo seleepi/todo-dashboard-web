@@ -34,7 +34,7 @@
   "keywords": [],
   "author": "selee_pi",
   "license": "ISC",
-  "type": "commonjs",
+  //"type": "commonjs",
   "bugs": {
     "url": "https://github.com/seleepi/todo-dashboard-web/issues"
   },
