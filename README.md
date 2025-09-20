@@ -874,6 +874,98 @@ NEXT_PUBLIC_POCKETBASE_URL=https://todo-dashboard-pocketbase.up.railway.app
 3. Add production user management features
 4. Performance and mobile optimizations
 
+### Session: Google OAuth Authentication - ✅ COMPLETED
+**Date**: September 20-21, 2025
+
+#### Implementation Overview
+Implemented Google OAuth 2.0 + PKCE authentication for user self-registration, replacing manual admin user creation.
+
+#### Final Architecture
+- **Authentication Flow**: Google OAuth → Next.js redirect handler → PocketBase API → Dashboard access
+- **Security**: PKCE (Proof Key for Code Exchange) + state verification
+- **User Experience**: One-click Google login with automatic account creation
+
+#### Key Components
+
+##### 1. OAuth Service (`lib/pocketbase.ts`)
+```javascript
+async signInWithGoogle() {
+  // Get OAuth provider from PocketBase
+  const authMethods = await fetch(`${pb.baseUrl}/api/collections/users/auth-methods`);
+  const googleProvider = authMethods.authProviders.find(p => p.name === 'google');
+
+  // Store PKCE credentials
+  sessionStorage.setItem('oauth_code_verifier', googleProvider.codeVerifier);
+  sessionStorage.setItem('oauth_state', googleProvider.state);
+
+  // Fix redirect URI to Next.js app
+  const url = new URL(googleProvider.authUrl);
+  url.searchParams.set('redirect_uri', `${window.location.origin}/oauth2-redirect`);
+
+  // Open popup and listen for completion
+  const popup = window.open(url.toString());
+  return new Promise((resolve, reject) => {
+    pb.authStore.onChange(() => resolve(pb.authStore.model));
+    window.addEventListener('message', handleOAuthMessages);
+  });
+}
+```
+
+##### 2. OAuth Redirect Handler (`app/oauth2-redirect/page.tsx`)
+```javascript
+// Get authorization code from URL
+const code = new URLSearchParams(window.location.search).get('code');
+const storedCodeVerifier = sessionStorage.getItem('oauth_code_verifier');
+
+// Complete OAuth flow with PocketBase
+const authResponse = await fetch(`${pb.baseUrl}/api/collections/users/auth-with-oauth2`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    provider: 'google',
+    code: code,
+    codeVerifier: storedCodeVerifier,
+    redirectUrl: window.location.href.split('?')[0]
+  })
+});
+
+// Update auth store and close popup
+const authData = await authResponse.json();
+pb.authStore.save(authData.token, authData.record);
+window.close();
+```
+
+#### Google Cloud Console Configuration
+```
+Authorized JavaScript origins:
+- https://todo-dashboard.up.railway.app
+
+Authorized redirect URIs:
+- https://todo-dashboard.up.railway.app/oauth2-redirect
+```
+
+#### Environment Configuration
+```bash
+# Railway Frontend Service
+NEXT_PUBLIC_POCKETBASE_URL=https://todo-dashboard-pocketbase.up.railway.app
+```
+
+#### Authentication Flow
+1. User clicks "Google로 로그인" button
+2. Popup opens with Google account selection
+3. User authorizes application access
+4. Google redirects to `/oauth2-redirect` with authorization code
+5. PocketBase processes OAuth and creates/authenticates user
+6. User gains immediate dashboard access
+
+#### Production Status ✅
+- **User Registration**: Automatic via Google OAuth
+- **Authentication**: Seamless Google account integration
+- **Security**: PKCE + state verification implemented
+- **Deployment**: Fully operational on Railway
+
+**Result**: Users can now register and login independently without admin intervention.
+
 ### Future Enhancements
 - [ ] Mobile responsive optimizations
 - [ ] Keyboard shortcuts and accessibility
