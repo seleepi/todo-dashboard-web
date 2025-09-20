@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { pb, authHelpers } from '@/lib/pocketbase'
-import OAuthDebugger from './OAuthDebugger'
 
 interface LoginFormProps {
   onLoginSuccess: () => void
@@ -53,15 +52,9 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     setError('')
 
     try {
-      console.log('Starting Google OAuth login...')
       await authHelpers.signInWithGoogle()
-      console.log('Google OAuth login successful')
       onLoginSuccess()
     } catch (err: any) {
-      console.error('Google login failed:', err)
-      console.error('Error details:', err.message, err.stack)
-
-      // 더 구체적인 오류 메시지 제공
       let errorMessage = 'Google 로그인에 실패했습니다.'
 
       if (err.message?.includes('not configured')) {
@@ -144,7 +137,6 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
           <div className="text-center text-sm text-gray-500">
             <p>테스트 계정: test@gmail.com / 12345678</p>
-            <p className="mt-1 text-xs">Version: v2.1 - {new Date().toISOString()}</p>
           </div>
 
           <div>
@@ -196,8 +188,6 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             </button>
           </div>
         </form>
-
-        <OAuthDebugger />
       </div>
     </div>
   )

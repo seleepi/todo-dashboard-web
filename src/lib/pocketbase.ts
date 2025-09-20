@@ -63,68 +63,31 @@ export const authHelpers = {
     return await pb.collection('users').authWithPassword(email, password);
   },
 
-  // Google OAuth authentication using manual flow (v2)
+  // Google OAuth authentication
   async signInWithGoogle() {
     try {
-      console.log('Starting manual Google OAuth flow v2...');
-
-      // Get auth methods using direct fetch (same as debugger)
-      console.log('Using direct fetch to get auth methods...');
+      // Get OAuth provider configuration
       const response = await fetch(`${pb.baseUrl}/api/collections/users/auth-methods`);
       const authMethods = await response.json();
-      console.log('Raw auth methods from direct fetch:', authMethods);
-      console.log('AuthProviders array:', authMethods.authProviders);
 
       const googleProvider = authMethods.authProviders?.find(
         (provider: any) => provider.name === 'google'
       );
 
-      console.log('Google provider search result:', googleProvider);
-
       if (!googleProvider) {
-        console.error('Google OAuth provider not found!');
-        console.error('Available providers:', authMethods.authProviders);
         throw new Error('Google OAuth provider is not configured in PocketBase');
       }
 
-      console.log('Google provider found:', googleProvider);
-
-      // Store the codeVerifier and state for the OAuth redirect
-      const codeVerifier = googleProvider.codeVerifier;
-      const state = googleProvider.state;
-
-      // Store these in sessionStorage for the redirect page to access
+      // Store OAuth credentials for redirect page
       if (typeof window !== 'undefined') {
-        sessionStorage.setItem('oauth_code_verifier', codeVerifier);
-        sessionStorage.setItem('oauth_state', state);
-        console.log('Stored OAuth state and codeVerifier in sessionStorage');
+        sessionStorage.setItem('oauth_code_verifier', googleProvider.codeVerifier);
+        sessionStorage.setItem('oauth_state', googleProvider.state);
       }
 
-      // Fix the redirect_uri by properly parsing and reconstructing URL
-      let authUrl = googleProvider.authUrl;
-      try {
-        const url = new URL(authUrl);
-
-        // CRITICAL FIX: Google should redirect to Next.js app, not PocketBase
-        const currentDomain = typeof window !== 'undefined' ? window.location.origin : '';
-        const correctRedirectUri = `${currentDomain}/oauth2-redirect`;
-
-        console.log('Current domain:', currentDomain);
-        console.log('Correct Next.js redirect URI:', correctRedirectUri);
-
-        // Always set the correct redirect URI to Next.js app
-        url.searchParams.set('redirect_uri', correctRedirectUri);
-        authUrl = url.toString();
-        console.log('Final corrected auth URL:', authUrl);
-      } catch (urlError) {
-        console.error('Failed to parse OAuth URL:', urlError);
-        // Fallback to the old method if URL parsing fails
-        if (authUrl.includes('redirect_uri=') && authUrl.endsWith('redirect_uri=')) {
-          const correctRedirectUri = encodeURIComponent(`${window.location.origin}/oauth2-redirect`);
-          authUrl = authUrl.replace('redirect_uri=', `redirect_uri=${correctRedirectUri}`);
-          console.log('Used fallback method for auth URL:', authUrl);
-        }
-      }
+      // Fix redirect URI to point to Next.js app
+      const url = new URL(googleProvider.authUrl);
+      url.searchParams.set('redirect_uri', `${window.location.origin}/oauth2-redirect`);
+      const authUrl = url.toString();
 
       // Open popup for OAuth
       const popup = window.open(
@@ -155,36 +118,28 @@ export const authHelpers = {
           }
         };
 
-        // Listen for auth store changes (primary detection method)
+        // Listen for auth store changes
         const handleAuthChange = () => {
           if (pb.authStore.isValid) {
-            console.log('Google OAuth successful - auth store change detected');
             cleanup();
             resolve(pb.authStore.model);
           }
         };
 
-        // Subscribe to auth changes
         authChangeUnsubscribe = pb.authStore.onChange(handleAuthChange);
 
-        // Also listen for message events from the popup (if it can communicate)
+        // Listen for popup messages
         const handleMessage = (event: MessageEvent) => {
           if (event.origin !== window.location.origin) return;
 
-          console.log('Received message from popup:', event.data);
-
           if (event.data?.type === 'oauth2-success') {
-            console.log('Google OAuth successful - message received');
             cleanup();
             window.removeEventListener('message', handleMessage);
             resolve(pb.authStore.model);
           } else if (event.data?.type === 'oauth2-error') {
-            console.log('Google OAuth error - message received:', event.data.error);
             cleanup();
             window.removeEventListener('message', handleMessage);
             reject(new Error(event.data.error || 'OAuth failed'));
-          } else if (event.data?.type === 'oauth2-debug') {
-            console.log('OAuth2 Debug:', event.data.message, event.data.url || '');
           }
         };
 
@@ -192,20 +147,12 @@ export const authHelpers = {
 
         // Set timeout for OAuth process
         timeoutId = setTimeout(() => {
-          console.log('OAuth timeout reached (2 minutes)');
           cleanup();
           window.removeEventListener('message', handleMessage);
-
-          // Final check before timing out
-          if (pb.authStore.isValid) {
-            resolve(pb.authStore.model);
-          } else {
-            reject(new Error('Google OAuth timeout - please try again'));
-          }
-        }, 120000); // 2 minutes timeout
+          reject(new Error('Google OAuth timeout - please try again'));
+        }, 120000);
       });
     } catch (error) {
-      console.error('Google OAuth error:', error);
       throw error;
     }
   },
