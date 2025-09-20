@@ -68,12 +68,14 @@ export const authHelpers = {
     try {
       console.log('Starting manual Google OAuth flow v2...');
 
-      // Get auth methods to get the Google OAuth URL
-      const authMethods = await pb.collection('users').listAuthMethods();
-      console.log('Raw auth methods from listAuthMethods:', authMethods);
-      console.log('AuthProviders array:', (authMethods as any).authProviders);
+      // Get auth methods using direct fetch (same as debugger)
+      console.log('Using direct fetch to get auth methods...');
+      const response = await fetch(`${pb.baseUrl}/api/collections/users/auth-methods`);
+      const authMethods = await response.json();
+      console.log('Raw auth methods from direct fetch:', authMethods);
+      console.log('AuthProviders array:', authMethods.authProviders);
 
-      const googleProvider = (authMethods as any).authProviders?.find(
+      const googleProvider = authMethods.authProviders?.find(
         (provider: any) => provider.name === 'google'
       );
 
@@ -81,7 +83,7 @@ export const authHelpers = {
 
       if (!googleProvider) {
         console.error('Google OAuth provider not found!');
-        console.error('Available providers:', (authMethods as any).authProviders);
+        console.error('Available providers:', authMethods.authProviders);
         throw new Error('Google OAuth provider is not configured in PocketBase');
       }
 
