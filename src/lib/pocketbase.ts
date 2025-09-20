@@ -63,18 +63,81 @@ export const authHelpers = {
     return await pb.collection('users').authWithPassword(email, password);
   },
 
-  // Google OAuth authentication using PocketBase authWithOAuth2
+  // Google OAuth authentication using manual flow
   async signInWithGoogle() {
     try {
-      console.log('Starting PocketBase OAuth2 with authWithOAuth2 method...');
+      console.log('Starting manual Google OAuth flow...');
 
-      // Use PocketBase's built-in OAuth2 method
-      const authData = await pb.collection('users').authWithOAuth2({
-        provider: 'google'
+      // Get auth methods to get the Google OAuth URL
+      const authMethods = await pb.collection('users').listAuthMethods();
+      const googleProvider = (authMethods as any).authProviders?.find(
+        (provider: any) => provider.name === 'google'
+      );
+
+      if (!googleProvider) {
+        throw new Error('Google OAuth provider is not configured in PocketBase');
+      }
+
+      console.log('Google provider found:', googleProvider);
+
+      // Fix the redirect_uri by adding it manually
+      let authUrl = googleProvider.authUrl;
+      if (authUrl.includes('redirect_uri=') && authUrl.endsWith('redirect_uri=')) {
+        // Add the correct redirect URI
+        const redirectUri = encodeURIComponent(`${pb.baseUrl}/api/oauth2-redirect`);
+        authUrl = authUrl.replace('redirect_uri=', `redirect_uri=${redirectUri}`);
+        console.log('Fixed auth URL:', authUrl);
+      }
+
+      // Open popup for OAuth
+      const popup = window.open(
+        authUrl,
+        'google-oauth',
+        'width=500,height=600,left=' +
+        (window.screen.width / 2 - 250) +
+        ',top=' +
+        (window.screen.height / 2 - 300)
+      );
+
+      if (!popup) {
+        throw new Error('Failed to open popup. Please check your browser\'s popup blocker settings.');
+      }
+
+      return new Promise((resolve, reject) => {
+        let checkCount = 0;
+        const maxChecks = 120;
+
+        const checkClosed = setInterval(() => {
+          checkCount++;
+
+          if (popup.closed) {
+            clearInterval(checkClosed);
+            if (pb.authStore.isValid) {
+              console.log('Google OAuth successful - user authenticated');
+              resolve(pb.authStore.model);
+            } else {
+              reject(new Error('Google OAuth was cancelled or failed'));
+            }
+          } else if (checkCount >= maxChecks) {
+            clearInterval(checkClosed);
+            popup.close();
+            reject(new Error('Google OAuth timeout'));
+          }
+        }, 1000);
+
+        // Listen for storage changes (PocketBase auth updates)
+        const handleStorageChange = () => {
+          if (pb.authStore.isValid) {
+            console.log('Auth detected via storage change');
+            clearInterval(checkClosed);
+            popup?.close();
+            window.removeEventListener('storage', handleStorageChange);
+            resolve(pb.authStore.model);
+          }
+        };
+
+        window.addEventListener('storage', handleStorageChange);
       });
-
-      console.log('OAuth2 authentication successful:', authData);
-      return authData;
     } catch (error) {
       console.error('Google OAuth error:', error);
       throw error;

@@ -41,26 +41,26 @@ export default function OAuth2Redirect() {
         if (code) {
           console.log('Authorization code received, completing OAuth2 flow...')
 
-          // Complete the OAuth2 flow
-          const authData = await pb.collection('users').authWithOAuth2Code(
-            'google',
-            code,
-            '',
-            window.location.origin + '/oauth2-redirect'
-          )
+          try {
+            // Complete the OAuth2 flow
+            const authData = await pb.collection('users').authWithOAuth2Code(
+              'google',
+              code,
+              '',
+              window.location.href.split('?')[0] // Use current URL without query params
+            )
 
-          console.log('OAuth2 authentication successful:', authData.record)
+            console.log('OAuth2 authentication successful:', authData.record)
 
-          // Send success message to parent window
-          if (window.opener) {
-            window.opener.postMessage({
-              type: 'oauth2-success',
-              user: authData.record
-            }, window.location.origin)
+            // PocketBase auth should now be stored automatically
+            // Just close the popup and let the parent check auth status
+            window.close()
+          } catch (authError) {
+            console.error('OAuth2 code exchange failed:', authError)
+
+            // Try alternative approach - close popup and let parent check
+            window.close()
           }
-
-          // Close the popup
-          window.close()
         } else {
           console.error('No authorization code or error received')
 
