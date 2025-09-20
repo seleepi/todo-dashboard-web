@@ -46,11 +46,7 @@ RUN chown nextjs:nodejs .next
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy the package.json for runtime dependencies
-COPY --from=builder /app/package.json ./package.json
-
-# Install only production dependencies for runtime
-RUN npm ci --only=production && npm cache clean --force
+# No need to install dependencies as standalone build includes everything needed
 
 USER nextjs
 
