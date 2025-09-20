@@ -10,8 +10,10 @@ interface LoginFormProps {
 export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [name, setName] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [isSignUp, setIsSignUp] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -19,11 +21,27 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     setError('')
 
     try {
-      await pb.collection('users').authWithPassword(email, password)
+      if (isSignUp) {
+        // 회원가입
+        if (!name.trim()) {
+          setError('이름을 입력해주세요.')
+          return
+        }
+        await authHelpers.signUp(email, password, name)
+        // 회원가입 후 자동 로그인
+        await pb.collection('users').authWithPassword(email, password)
+      } else {
+        // 로그인
+        await pb.collection('users').authWithPassword(email, password)
+      }
       onLoginSuccess()
     } catch (err) {
-      console.error('Login failed:', err)
-      setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.')
+      console.error('Auth failed:', err)
+      if (isSignUp) {
+        setError('회원가입에 실패했습니다. 다시 시도해주세요.')
+      } else {
+        setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.')
+      }
     } finally {
       setIsLoading(false)
     }
@@ -52,11 +70,26 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             TODO Dashboard
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            로그인하여 대시보드를 시작하세요
+            {isSignUp ? '계정을 생성하여 시작하세요' : '로그인하여 대시보드를 시작하세요'}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="rounded-md shadow-sm -space-y-px">
+            {isSignUp && (
+              <div>
+                <input
+                  id="name"
+                  name="name"
+                  type="text"
+                  autoComplete="name"
+                  required
+                  className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                  placeholder="이름"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+            )}
             <div>
               <input
                 id="email-address"
@@ -64,7 +97,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 type="email"
                 autoComplete="email"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${isSignUp ? '' : 'rounded-t-md'} focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
                 placeholder="이메일 주소"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -101,7 +134,20 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               disabled={isLoading}
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? '로그인 중...' : '이메일로 로그인'}
+              {isLoading ?
+                (isSignUp ? '회원가입 중...' : '로그인 중...') :
+                (isSignUp ? '회원가입' : '이메일로 로그인')
+              }
+            </button>
+          </div>
+
+          <div className="text-center">
+            <button
+              type="button"
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-indigo-600 hover:text-indigo-500 text-sm"
+            >
+              {isSignUp ? '이미 계정이 있나요? 로그인' : '계정이 없나요? 회원가입'}
             </button>
           </div>
 
