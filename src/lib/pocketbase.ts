@@ -70,11 +70,18 @@ export const authHelpers = {
 
       // Get auth methods to get the Google OAuth URL
       const authMethods = await pb.collection('users').listAuthMethods();
+      console.log('Raw auth methods from listAuthMethods:', authMethods);
+      console.log('AuthProviders array:', (authMethods as any).authProviders);
+
       const googleProvider = (authMethods as any).authProviders?.find(
         (provider: any) => provider.name === 'google'
       );
 
+      console.log('Google provider search result:', googleProvider);
+
       if (!googleProvider) {
+        console.error('Google OAuth provider not found!');
+        console.error('Available providers:', (authMethods as any).authProviders);
         throw new Error('Google OAuth provider is not configured in PocketBase');
       }
 
