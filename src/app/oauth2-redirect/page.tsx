@@ -103,13 +103,30 @@ export default function OAuth2Redirect() {
               }, window.location.origin)
             }
 
-            // Complete the OAuth2 flow
-            const authData = await pb.collection('users').authWithOAuth2Code(
-              'google',
-              code,
-              storedCodeVerifier, // Use the stored codeVerifier
-              window.location.href.split('?')[0] // Use current URL without query params
-            )
+            // Complete the OAuth2 flow using direct API call
+            const pocketbaseUrl = pb.baseUrl;
+            const authResponse = await fetch(`${pocketbaseUrl}/api/collections/users/auth-with-oauth2`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({
+                provider: 'google',
+                code: code,
+                codeVerifier: storedCodeVerifier,
+                redirectUrl: window.location.href.split('?')[0]
+              })
+            });
+
+            if (!authResponse.ok) {
+              const errorData = await authResponse.text();
+              throw new Error(`PocketBase auth failed: ${authResponse.status} - ${errorData}`);
+            }
+
+            const authData = await authResponse.json();
+
+            // Manually update PocketBase auth store
+            pb.authStore.save(authData.token, authData.record);
 
             console.log('OAuth2 authentication successful!')
             console.log('Auth data:', authData)

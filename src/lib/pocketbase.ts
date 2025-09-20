@@ -104,23 +104,24 @@ export const authHelpers = {
       let authUrl = googleProvider.authUrl;
       try {
         const url = new URL(authUrl);
-        const redirectUri = `${pb.baseUrl}/api/oauth2-redirect`;
 
-        // Check if redirect_uri is missing or empty
-        if (!url.searchParams.get('redirect_uri')) {
-          console.log('redirect_uri is missing or empty, adding it');
-          url.searchParams.set('redirect_uri', redirectUri);
-          authUrl = url.toString();
-          console.log('Fixed auth URL:', authUrl);
-        } else {
-          console.log('redirect_uri already present:', url.searchParams.get('redirect_uri'));
-        }
+        // CRITICAL FIX: Google should redirect to Next.js app, not PocketBase
+        const currentDomain = typeof window !== 'undefined' ? window.location.origin : '';
+        const correctRedirectUri = `${currentDomain}/oauth2-redirect`;
+
+        console.log('Current domain:', currentDomain);
+        console.log('Correct Next.js redirect URI:', correctRedirectUri);
+
+        // Always set the correct redirect URI to Next.js app
+        url.searchParams.set('redirect_uri', correctRedirectUri);
+        authUrl = url.toString();
+        console.log('Final corrected auth URL:', authUrl);
       } catch (urlError) {
         console.error('Failed to parse OAuth URL:', urlError);
         // Fallback to the old method if URL parsing fails
         if (authUrl.includes('redirect_uri=') && authUrl.endsWith('redirect_uri=')) {
-          const redirectUri = encodeURIComponent(`${pb.baseUrl}/api/oauth2-redirect`);
-          authUrl = authUrl.replace('redirect_uri=', `redirect_uri=${redirectUri}`);
+          const correctRedirectUri = encodeURIComponent(`${window.location.origin}/oauth2-redirect`);
+          authUrl = authUrl.replace('redirect_uri=', `redirect_uri=${correctRedirectUri}`);
           console.log('Used fallback method for auth URL:', authUrl);
         }
       }
