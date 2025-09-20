@@ -63,10 +63,10 @@ export const authHelpers = {
     return await pb.collection('users').authWithPassword(email, password);
   },
 
-  // Google OAuth authentication using manual flow
+  // Google OAuth authentication using manual flow (v2)
   async signInWithGoogle() {
     try {
-      console.log('Starting manual Google OAuth flow...');
+      console.log('Starting manual Google OAuth flow v2...');
 
       // Get auth methods to get the Google OAuth URL
       const authMethods = await pb.collection('users').listAuthMethods();

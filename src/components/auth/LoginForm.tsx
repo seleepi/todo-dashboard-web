@@ -144,6 +144,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
           <div className="text-center text-sm text-gray-500">
             <p>테스트 계정: test@gmail.com / 12345678</p>
+            <p className="mt-1 text-xs">Version: v2.1 - {new Date().toISOString()}</p>
           </div>
 
           <div>
