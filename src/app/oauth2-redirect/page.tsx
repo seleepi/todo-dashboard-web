@@ -13,6 +13,15 @@ export default function OAuth2Redirect() {
         console.log('Auth store valid before:', pb.authStore.isValid)
         console.log('Auth store model before:', pb.authStore.model)
 
+        // Immediately send a message to parent that we loaded
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'oauth2-debug',
+            message: 'OAuth2 redirect page loaded',
+            url: window.location.href
+          }, window.location.origin)
+        }
+
         // Get the URL parameters
         const urlParams = new URLSearchParams(window.location.search)
         const code = urlParams.get('code')
@@ -26,6 +35,20 @@ export default function OAuth2Redirect() {
           error,
           errorDescription
         })
+
+        // Send URL parameters to parent for debugging
+        if (window.opener) {
+          window.opener.postMessage({
+            type: 'oauth2-debug',
+            message: 'URL parameters parsed',
+            data: {
+              hasCode: !!code,
+              state,
+              error,
+              errorDescription
+            }
+          }, window.location.origin)
+        }
 
         if (error) {
           console.error('OAuth2 error from provider:', error, errorDescription)
@@ -67,6 +90,18 @@ export default function OAuth2Redirect() {
             console.log('- code:', code.substring(0, 10) + '...')
             console.log('- codeVerifier:', storedCodeVerifier ? storedCodeVerifier.substring(0, 10) + '...' : 'EMPTY')
             console.log('- redirectUrl:', window.location.href.split('?')[0])
+
+            // Send debug message before API call
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'oauth2-debug',
+                message: 'Starting PocketBase authWithOAuth2Code',
+                data: {
+                  hasCodeVerifier: !!storedCodeVerifier,
+                  redirectUrl: window.location.href.split('?')[0]
+                }
+              }, window.location.origin)
+            }
 
             // Complete the OAuth2 flow
             const authData = await pb.collection('users').authWithOAuth2Code(
@@ -150,10 +185,15 @@ export default function OAuth2Redirect() {
   }, [])
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="text-center">
+    <div className="min-h-screen flex items-center justify-center bg-blue-50">
+      <div className="text-center p-8 bg-white rounded-lg shadow-lg">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto"></div>
         <p className="mt-4 text-gray-600">인증 처리 중...</p>
+        <p className="mt-2 text-xs text-gray-400">OAuth2 Redirect Page v2.1</p>
+        <div className="mt-4 text-xs text-left bg-gray-100 p-2 rounded">
+          <p>URL: {typeof window !== 'undefined' ? window.location.href : 'Loading...'}</p>
+          <p>Time: {new Date().toISOString()}</p>
+        </div>
       </div>
     </div>
   )

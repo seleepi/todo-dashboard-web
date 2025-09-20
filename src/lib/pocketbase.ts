@@ -170,6 +170,8 @@ export const authHelpers = {
         const handleMessage = (event: MessageEvent) => {
           if (event.origin !== window.location.origin) return;
 
+          console.log('Received message from popup:', event.data);
+
           if (event.data?.type === 'oauth2-success') {
             console.log('Google OAuth successful - message received');
             cleanup();
@@ -180,6 +182,8 @@ export const authHelpers = {
             cleanup();
             window.removeEventListener('message', handleMessage);
             reject(new Error(event.data.error || 'OAuth failed'));
+          } else if (event.data?.type === 'oauth2-debug') {
+            console.log('OAuth2 Debug:', event.data.message, event.data.url || '');
           }
         };
 
