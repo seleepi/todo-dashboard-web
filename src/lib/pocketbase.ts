@@ -82,6 +82,8 @@ export const authHelpers = {
       // Redirect to Google OAuth
       const authUrl = googleProvider.authUrl;
 
+      console.log('Opening OAuth popup with URL:', authUrl);
+
       // Open popup for OAuth
       const popup = window.open(
         authUrl,
@@ -92,36 +94,82 @@ export const authHelpers = {
         (window.screen.height / 2 - 300)
       );
 
+      if (!popup) {
+        throw new Error('Failed to open popup. Please check your browser\'s popup blocker settings.');
+      }
+
       return new Promise((resolve, reject) => {
+        let checkCount = 0;
+        const maxChecks = 120; // 2분 타임아웃
+
         const checkClosed = setInterval(() => {
-          if (popup?.closed) {
+          checkCount++;
+
+          if (popup.closed) {
+            console.log('Popup closed');
             clearInterval(checkClosed);
             if (pb.authStore.isValid) {
+              console.log('Auth store is valid, login successful');
               resolve(pb.authStore.model);
             } else {
-              reject(new Error('Authentication was cancelled'));
+              console.log('Auth store is not valid, login cancelled or failed');
+              reject(new Error('Authentication was cancelled or failed'));
             }
+          } else if (checkCount >= maxChecks) {
+            console.log('OAuth timeout reached');
+            clearInterval(checkClosed);
+            popup.close();
+            reject(new Error('OAuth authentication timeout'));
           }
         }, 1000);
 
         // Listen for message from popup
         const handleMessage = (event: MessageEvent) => {
-          if (event.origin !== window.location.origin) return;
+          console.log('Received message from popup:', event.data);
+
+          if (event.origin !== window.location.origin) {
+            console.log('Message origin mismatch:', event.origin, 'vs', window.location.origin);
+            return;
+          }
 
           if (event.data.type === 'oauth2-success') {
+            console.log('OAuth success message received');
             clearInterval(checkClosed);
             popup?.close();
             window.removeEventListener('message', handleMessage);
             resolve(event.data.user);
           } else if (event.data.type === 'oauth2-error') {
+            console.log('OAuth error message received:', event.data.error);
             clearInterval(checkClosed);
             popup?.close();
             window.removeEventListener('message', handleMessage);
-            reject(new Error(event.data.error));
+            reject(new Error(event.data.error || 'OAuth authentication failed'));
           }
         };
 
         window.addEventListener('message', handleMessage);
+
+        // 팝업이 다른 도메인으로 리디렉션된 후 다시 돌아올 때를 대비
+        const checkPocketBaseAuth = setInterval(() => {
+          try {
+            if (popup.location.href.includes(pb.baseUrl)) {
+              console.log('Popup returned to PocketBase domain, checking auth status...');
+              // PocketBase 도메인으로 돌아왔다면 인증 상태 확인
+              setTimeout(() => {
+                if (pb.authStore.isValid) {
+                  console.log('PocketBase auth is valid after redirect');
+                  clearInterval(checkPocketBaseAuth);
+                  clearInterval(checkClosed);
+                  popup?.close();
+                  window.removeEventListener('message', handleMessage);
+                  resolve(pb.authStore.model);
+                }
+              }, 1000);
+            }
+          } catch (e) {
+            // Cross-origin 에러는 무시 (정상적인 동작)
+          }
+        }, 1000);
       });
     } catch (error) {
       console.error('Google OAuth error:', error);

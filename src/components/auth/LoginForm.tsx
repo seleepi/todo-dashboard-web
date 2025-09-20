@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { pb, authHelpers } from '@/lib/pocketbase'
+import OAuthDebugger from './OAuthDebugger'
 
 interface LoginFormProps {
   onLoginSuccess: () => void
@@ -194,6 +195,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             </button>
           </div>
         </form>
+
+        <OAuthDebugger />
       </div>
     </div>
   )
