@@ -1,7 +1,11 @@
 import PocketBase from 'pocketbase';
 
 // Initialize PocketBase instance
-const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL || 'http://127.0.0.1:8090';
+const pocketbaseUrl = process.env.NEXT_PUBLIC_POCKETBASE_URL ||
+  (typeof window !== 'undefined' && window.location.hostname.includes('railway.app')
+    ? 'https://todo-dashboard-pocketbase.up.railway.app'
+    : 'http://127.0.0.1:8090');
+
 export const pb = new PocketBase(pocketbaseUrl);
 
 // Disable auto-cancellation of pending requests
