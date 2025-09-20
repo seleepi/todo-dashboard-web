@@ -52,13 +52,27 @@ export default function OAuth2Redirect() {
 
             console.log('OAuth2 authentication successful:', authData.record)
 
+            // Send success message to parent window
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'oauth2-success',
+                user: authData.record
+              }, window.location.origin)
+            }
+
             // PocketBase auth should now be stored automatically
-            // Just close the popup and let the parent check auth status
             window.close()
           } catch (authError) {
             console.error('OAuth2 code exchange failed:', authError)
 
-            // Try alternative approach - close popup and let parent check
+            // Send error message to parent window
+            if (window.opener) {
+              window.opener.postMessage({
+                type: 'oauth2-error',
+                error: `OAuth2 code exchange failed: ${authError instanceof Error ? authError.message : 'Unknown error'}`
+              }, window.location.origin)
+            }
+
             window.close()
           }
         } else {

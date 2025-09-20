@@ -113,39 +113,64 @@ export const authHelpers = {
       }
 
       return new Promise((resolve, reject) => {
-        let checkCount = 0;
-        const maxChecks = 120;
+        let timeoutId: NodeJS.Timeout;
+        let authChangeUnsubscribe: (() => void) | null = null;
 
-        const checkClosed = setInterval(() => {
-          checkCount++;
-
-          if (popup.closed) {
-            clearInterval(checkClosed);
-            if (pb.authStore.isValid) {
-              console.log('Google OAuth successful - user authenticated');
-              resolve(pb.authStore.model);
-            } else {
-              reject(new Error('Google OAuth was cancelled or failed'));
-            }
-          } else if (checkCount >= maxChecks) {
-            clearInterval(checkClosed);
-            popup.close();
-            reject(new Error('Google OAuth timeout'));
-          }
-        }, 1000);
-
-        // Listen for storage changes (PocketBase auth updates)
-        const handleStorageChange = () => {
-          if (pb.authStore.isValid) {
-            console.log('Auth detected via storage change');
-            clearInterval(checkClosed);
+        // Clean up function
+        const cleanup = () => {
+          if (timeoutId) clearTimeout(timeoutId);
+          if (authChangeUnsubscribe) authChangeUnsubscribe();
+          try {
             popup?.close();
-            window.removeEventListener('storage', handleStorageChange);
+          } catch (e) {
+            console.log('Could not close popup (Cross-Origin policy)');
+          }
+        };
+
+        // Listen for auth store changes (primary detection method)
+        const handleAuthChange = () => {
+          if (pb.authStore.isValid) {
+            console.log('Google OAuth successful - auth store change detected');
+            cleanup();
             resolve(pb.authStore.model);
           }
         };
 
-        window.addEventListener('storage', handleStorageChange);
+        // Subscribe to auth changes
+        authChangeUnsubscribe = pb.authStore.onChange(handleAuthChange);
+
+        // Also listen for message events from the popup (if it can communicate)
+        const handleMessage = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
+
+          if (event.data?.type === 'oauth2-success') {
+            console.log('Google OAuth successful - message received');
+            cleanup();
+            window.removeEventListener('message', handleMessage);
+            resolve(pb.authStore.model);
+          } else if (event.data?.type === 'oauth2-error') {
+            console.log('Google OAuth error - message received:', event.data.error);
+            cleanup();
+            window.removeEventListener('message', handleMessage);
+            reject(new Error(event.data.error || 'OAuth failed'));
+          }
+        };
+
+        window.addEventListener('message', handleMessage);
+
+        // Set timeout for OAuth process
+        timeoutId = setTimeout(() => {
+          console.log('OAuth timeout reached (2 minutes)');
+          cleanup();
+          window.removeEventListener('message', handleMessage);
+
+          // Final check before timing out
+          if (pb.authStore.isValid) {
+            resolve(pb.authStore.model);
+          } else {
+            reject(new Error('Google OAuth timeout - please try again'));
+          }
+        }, 120000); // 2 minutes timeout
       });
     } catch (error) {
       console.error('Google OAuth error:', error);
