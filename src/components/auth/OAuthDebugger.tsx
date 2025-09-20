@@ -11,15 +11,28 @@ export default function OAuthDebugger() {
     setLoading(true)
     try {
       console.log('Checking PocketBase OAuth configuration...')
+      console.log('PocketBase URL:', pb.baseUrl)
 
       // PocketBase 연결 테스트
-      const authMethods = await pb.collection('users').listAuthMethods()
+      const response = await fetch(`${pb.baseUrl}/api/collections/users/auth-methods`)
+      console.log('Raw response status:', response.status)
+      console.log('Raw response headers:', Object.fromEntries(response.headers.entries()))
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+      }
+
+      const authMethods = await response.json()
+      console.log('Raw auth methods response:', authMethods)
 
       const debugData = {
         pocketbaseUrl: pb.baseUrl,
+        responseStatus: response.status,
         authMethods: authMethods,
-        authProviders: (authMethods as any).authProviders || [],
-        googleProvider: (authMethods as any).authProviders?.find((p: any) => p.name === 'google'),
+        authProviders: authMethods.authProviders || [],
+        googleProvider: authMethods.authProviders?.find((p: any) => p.name === 'google'),
+        usernamePassword: authMethods.usernamePassword,
+        emailPassword: authMethods.emailPassword,
         timestamp: new Date().toISOString()
       }
 
@@ -29,6 +42,8 @@ export default function OAuthDebugger() {
       console.error('Debug check failed:', error)
       setDebugInfo({
         error: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined,
+        pocketbaseUrl: pb.baseUrl,
         timestamp: new Date().toISOString()
       })
     } finally {
