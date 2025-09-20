@@ -78,5 +78,12 @@ export default function Home() {
     )
   }
   // 모든 조건을 통과했으면 (로그인도 했고, 대시보드도 선택했으면) 실제 대시보드 보여주기
-  return <Dashboard dashboardId={selectedDashboard.id} />
+  return (
+    <Dashboard
+      dashboardId={selectedDashboard.id}
+      currentDashboard={selectedDashboard}
+      onDashboardChange={handleDashboardSelect}
+      onLogout={handleLogout}
+    />
+  )
 }
