@@ -83,6 +83,12 @@ export const authHelpers = {
         throw new Error('Google OAuth provider is not configured in PocketBase. Please configure it in the admin panel.');
       }
 
+      // Check if redirect_uri is properly set
+      if (!googleProvider.authUrl.includes('redirect_uri=') || googleProvider.authUrl.includes('redirect_uri=&') || googleProvider.authUrl.endsWith('redirect_uri=')) {
+        console.error('Redirect URI is missing or empty in auth URL:', googleProvider.authUrl);
+        throw new Error('Google OAuth redirect URI is not properly configured in PocketBase. Please check the redirect URL setting in the admin panel.');
+      }
+
       // Redirect to Google OAuth
       const authUrl = googleProvider.authUrl;
 
