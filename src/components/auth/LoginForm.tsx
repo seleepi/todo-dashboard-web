@@ -52,11 +52,28 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
     setError('')
 
     try {
+      console.log('Starting Google OAuth login...')
       await authHelpers.signInWithGoogle()
+      console.log('Google OAuth login successful')
       onLoginSuccess()
-    } catch (err) {
+    } catch (err: any) {
       console.error('Google login failed:', err)
-      setError('Google 로그인에 실패했습니다. 다시 시도해주세요.')
+      console.error('Error details:', err.message, err.stack)
+
+      // 더 구체적인 오류 메시지 제공
+      let errorMessage = 'Google 로그인에 실패했습니다.'
+
+      if (err.message?.includes('not configured')) {
+        errorMessage = 'Google OAuth가 설정되지 않았습니다. 관리자에게 문의하세요.'
+      } else if (err.message?.includes('cancelled')) {
+        errorMessage = '로그인이 취소되었습니다.'
+      } else if (err.message?.includes('popup')) {
+        errorMessage = '팝업이 차단되었습니다. 브라우저 설정을 확인해주세요.'
+      } else if (err.message) {
+        errorMessage = `Google 로그인 오류: ${err.message}`
+      }
+
+      setError(errorMessage)
     } finally {
       setIsLoading(false)
     }

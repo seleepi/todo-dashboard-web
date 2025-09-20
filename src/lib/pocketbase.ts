@@ -62,16 +62,21 @@ export const authHelpers = {
   // Google OAuth authentication
   async signInWithGoogle() {
     try {
+      console.log('Fetching auth methods from PocketBase...');
       // Get the list of available OAuth providers
       const authMethods = await pb.collection('users').listAuthMethods();
+      console.log('Auth methods received:', authMethods);
 
       // Find Google OAuth provider
       const googleProvider = (authMethods as any).authProviders?.find(
         (provider: any) => provider.name === 'google'
       );
 
+      console.log('Available auth providers:', (authMethods as any).authProviders);
+      console.log('Google provider found:', googleProvider);
+
       if (!googleProvider) {
-        throw new Error('Google OAuth provider is not configured in PocketBase');
+        throw new Error('Google OAuth provider is not configured in PocketBase. Please configure it in the admin panel.');
       }
 
       // Redirect to Google OAuth
