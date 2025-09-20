@@ -100,13 +100,29 @@ export const authHelpers = {
         console.log('Stored OAuth state and codeVerifier in sessionStorage');
       }
 
-      // Fix the redirect_uri by adding it manually
+      // Fix the redirect_uri by properly parsing and reconstructing URL
       let authUrl = googleProvider.authUrl;
-      if (authUrl.includes('redirect_uri=') && authUrl.endsWith('redirect_uri=')) {
-        // Add the correct redirect URI
-        const redirectUri = encodeURIComponent(`${pb.baseUrl}/api/oauth2-redirect`);
-        authUrl = authUrl.replace('redirect_uri=', `redirect_uri=${redirectUri}`);
-        console.log('Fixed auth URL:', authUrl);
+      try {
+        const url = new URL(authUrl);
+        const redirectUri = `${pb.baseUrl}/api/oauth2-redirect`;
+
+        // Check if redirect_uri is missing or empty
+        if (!url.searchParams.get('redirect_uri')) {
+          console.log('redirect_uri is missing or empty, adding it');
+          url.searchParams.set('redirect_uri', redirectUri);
+          authUrl = url.toString();
+          console.log('Fixed auth URL:', authUrl);
+        } else {
+          console.log('redirect_uri already present:', url.searchParams.get('redirect_uri'));
+        }
+      } catch (urlError) {
+        console.error('Failed to parse OAuth URL:', urlError);
+        // Fallback to the old method if URL parsing fails
+        if (authUrl.includes('redirect_uri=') && authUrl.endsWith('redirect_uri=')) {
+          const redirectUri = encodeURIComponent(`${pb.baseUrl}/api/oauth2-redirect`);
+          authUrl = authUrl.replace('redirect_uri=', `redirect_uri=${redirectUri}`);
+          console.log('Used fallback method for auth URL:', authUrl);
+        }
       }
 
       // Open popup for OAuth
