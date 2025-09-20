@@ -68,15 +68,10 @@ export const authHelpers = {
     try {
       console.log('Starting PocketBase OAuth2 with authWithOAuth2 method...');
 
-      // Use PocketBase's built-in OAuth2 method with correct parameters
-      const authData = await pb.collection('users').authWithOAuth2(
-        'google', // provider name
-        undefined, // code (will be obtained via popup)
-        undefined, // codeVerifier (will be generated)
-        `${pb.baseUrl}/api/oauth2-redirect`, // redirectUrl
-        {}, // createData for new users
-        {} // additional body data
-      );
+      // Use PocketBase's built-in OAuth2 method
+      const authData = await pb.collection('users').authWithOAuth2({
+        provider: 'google'
+      });
 
       console.log('OAuth2 authentication successful:', authData);
       return authData;
