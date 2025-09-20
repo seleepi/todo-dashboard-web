@@ -89,6 +89,17 @@ export const authHelpers = {
 
       console.log('Google provider found:', googleProvider);
 
+      // Store the codeVerifier and state for the OAuth redirect
+      const codeVerifier = googleProvider.codeVerifier;
+      const state = googleProvider.state;
+
+      // Store these in sessionStorage for the redirect page to access
+      if (typeof window !== 'undefined') {
+        sessionStorage.setItem('oauth_code_verifier', codeVerifier);
+        sessionStorage.setItem('oauth_state', state);
+        console.log('Stored OAuth state and codeVerifier in sessionStorage');
+      }
+
       // Fix the redirect_uri by adding it manually
       let authUrl = googleProvider.authUrl;
       if (authUrl.includes('redirect_uri=') && authUrl.endsWith('redirect_uri=')) {
