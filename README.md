@@ -693,9 +693,184 @@ console.log(process.env.NEXT_PUBLIC_POCKETBASE_URL)
 
 **🎉 TODO Dashboard successfully deployed and fully functional!**
 
+### Session: PocketBase Configuration & Persistence Fix - ✅ COMPLETED
+**Date**: September 19, 2025
+
+#### Problems Identified & Root Causes
+
+##### Problem 1: Admin Account Disappearing After Restarts ❌
+**Symptom**: Admin login credentials became invalid after each Railway deployment restart
+- Could not access PocketBase admin panel at `/_/`
+- "Invalid login credentials" error for existing accounts
+- "Create first admin" option disappeared
+
+**Root Cause Analysis**:
+- **Missing Volume Configuration**: No persistent storage for `/pb/pb_data` directory
+- **Docker VOLUME Declaration**: Used `VOLUME ["/pb/pb_data"]` which Railway prohibits
+- **Container Restarts**: SQLite database stored in ephemeral container filesystem
+
+##### Problem 2: Configuration Structure Complexity ❌  
+**Symptom**: Duplicate and conflicting PocketBase configurations
+- Two separate directories: `pocketbase/` and `pocketbase-railway/`
+- Nested migration folders: `pocketbase/pb_migrations/pb_migrations/`
+- Unsynchronized migration files between directories
+- Deployment targeting wrong service (Node.js instead of PocketBase)
+
+**Root Cause**: Legacy dual-structure from previous deployment attempts
+
+#### Solution Implementation Process
+
+##### Step 1: Structure Cleanup ✅
+```bash
+# Remove nested migration folders
+rmdir pocketbase/pb_migrations/pb_migrations/
+
+# Remove temporary test files  
+rm pocketbase-railway/pb_migrations/1726732800_create_admin.js
+
+# Consolidate to single structure
+cp pocketbase-railway/Dockerfile pocketbase/
+cp pocketbase-railway/railway.json pocketbase/
+rm -rf pocketbase-railway/
+```
+
+##### Step 2: Railway Volume Configuration ✅
+**Railway Dashboard Process**:
+1. **Command Palette** (`Ctrl+K` or `⌘K`) → "Create Volume"
+2. **Service Selection**: `todo-dashboard-pocketbase`  
+3. **Mount Path**: `/pb/pb_data`
+4. **Size**: 1GB persistent storage
+
+**Key Discovery**: Railway Volume settings located in Command Palette, not Settings tab
+
+##### Step 3: Dockerfile Compliance ✅
+**Problem**: Railway prohibits `VOLUME` keyword in Dockerfiles
+```dockerfile
+# ❌ BEFORE - Caused deployment failure
+VOLUME ["/pb/pb_data"]
+
+# ✅ AFTER - Railway compliant
+RUN mkdir -p /pb/pb_data
+# Railway volumes handle persistence automatically
+```
+
+##### Step 4: Build Path Corrections ✅
+**Problem**: Docker COPY command with shell redirection failed
+```dockerfile  
+# ❌ BEFORE - Docker doesn't support shell redirection
+COPY pb_migrations/ ./pb_migrations/ 2>/dev/null || true
+
+# ✅ AFTER - Correct path from repository root
+COPY pocketbase/pb_migrations/ ./pb_migrations/
+```
+
+##### Step 5: Service Deployment Fix ✅
+**Problem**: PocketBase code deployed to Node.js service (wrong service)
+- Build logs showed `npm run build` instead of Alpine Linux + PocketBase
+- Root cause: `package.json` in repository root caused Railway to detect Node.js
+
+**Solution**: Replace root Dockerfile with PocketBase version
+```bash
+cp pocketbase/Dockerfile ./Dockerfile  # Override Node.js detection
+railway up  # Deploy to correct service with Docker build
+```
+
+#### Persistence Verification Process ✅
+
+##### Test Sequence
+1. **Admin Account Creation**: Created new admin account in fresh deployment
+2. **Service Restart**: Triggered deployment restart via `railway up`  
+3. **Persistence Verification**: Admin account retained after restart
+4. **Collections Verification**: `users`, `dashboards`, `widgets` collections preserved
+5. **Data Integrity**: All schema and migrations properly applied
+
+##### Technical Validation
+- **Volume Mount**: Railway successfully mounted `/pb/pb_data` 
+- **SQLite Persistence**: Database file survives container restarts
+- **Migration Replay**: Schema recreated correctly on fresh deploys
+- **Admin Authentication**: Login credentials preserved across restarts
+
+#### Final Configuration State ✅
+
+##### Railway Volume Setup
+- **Mount Path**: `/pb/pb_data` (PocketBase data directory)
+- **Service**: `todo-dashboard-pocketbase`  
+- **Size**: 1GB persistent storage
+- **Mount Type**: Railway managed volume
+
+##### Dockerfile Configuration
+```dockerfile
+FROM alpine:latest
+RUN apk --no-cache add ca-certificates
+WORKDIR /pb
+ADD https://github.com/pocketbase/pocketbase/releases/download/v0.22.21/pocketbase_0.22.21_linux_amd64.zip /tmp/pocketbase.zip
+RUN cd /tmp && unzip pocketbase.zip && chmod +x pocketbase && mv pocketbase /pb/
+COPY pocketbase/pb_migrations/ ./pb_migrations/
+RUN mkdir -p /pb/pb_data  # Railway volumes handle persistence
+EXPOSE 8080
+CMD ["/pb/pocketbase", "serve", "--http=0.0.0.0:8080"]
+```
+
+##### Railway Configuration
+```json
+{
+  "build": { "builder": "DOCKERFILE", "dockerfilePath": "Dockerfile" },
+  "deploy": { 
+    "startCommand": "/pb/pocketbase serve --http=0.0.0.0:8080",
+    "restartPolicyType": "NEVER",  // Prevent unnecessary restarts
+    "healthcheckPath": "/api/health",
+    "healthcheckTimeout": 300
+  }
+}
+```
+
+#### Web Application Integration ✅
+
+##### Environment Configuration
+**Local Development**:
+```bash
+# .env.local created
+NEXT_PUBLIC_POCKETBASE_URL=https://todo-dashboard-pocketbase.up.railway.app
+```
+
+**Railway Frontend Service**:
+- Environment Variable: `NEXT_PUBLIC_POCKETBASE_URL`
+- Value: Production PocketBase URL
+- Auto-connection to deployed backend
+
+#### Deployment Verification Results ✅
+
+##### Production URLs Working
+- **PocketBase API**: `https://todo-dashboard-pocketbase.up.railway.app` ✅
+- **Admin Panel**: `https://todo-dashboard-pocketbase.up.railway.app/_/` ✅  
+- **Health Check**: `{"message":"API is healthy.","code":200,"data":{"canBackup":true}}` ✅
+
+##### Persistence Testing Results  
+- **Admin Login**: ✅ Successful after restart
+- **Collections**: ✅ All schema preserved (`users`, `dashboards`, `widgets`)
+- **Data Integrity**: ✅ Migration files properly applied
+- **Volume Mounting**: ✅ `/pb/pb_data` successfully persisted
+
+#### Problem Resolution Summary
+
+| Issue | Root Cause | Solution | Status |
+|-------|------------|----------|--------|
+| Admin disappearing | No persistent volume | Railway Volume + mount `/pb/pb_data` | ✅ Resolved |
+| Duplicate configs | Legacy structure | Consolidate to `pocketbase/` only | ✅ Resolved |  
+| Wrong service deploy | Node.js detection | Replace root Dockerfile | ✅ Resolved |
+| Docker VOLUME error | Railway prohibition | Remove VOLUME keyword | ✅ Resolved |
+| Build path errors | Shell redirection | Fix COPY paths | ✅ Resolved |
+
+#### Key Technical Learnings
+1. **Railway Volumes**: Created via Command Palette, not Settings tab
+2. **Railway Restrictions**: `VOLUME` keyword prohibited in Dockerfiles  
+3. **Service Detection**: Root `package.json` causes Node.js detection override
+4. **Volume Persistence**: Railway handles mounting automatically after creation
+5. **Restart Policies**: Use "NEVER" to prevent unnecessary admin account resets
+
 ### Next Session Priority (Optional)
-1. Investigate PocketBase admin panel login issue (low priority)
-2. Implement Railway volume mounting for database persistence
+1. ~~Investigate PocketBase admin panel login issue~~ ✅ **RESOLVED**
+2. ~~Implement Railway volume mounting for database persistence~~ ✅ **COMPLETED** 
 3. Add production user management features
 4. Performance and mobile optimizations
 

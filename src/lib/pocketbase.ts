@@ -50,13 +50,78 @@ export const authHelpers = {
       passwordConfirm: password,
       name,
     };
-    
+
     return await pb.collection('users').create(userData);
   },
 
   // Sign in existing user
   async signIn(email: string, password: string) {
     return await pb.collection('users').authWithPassword(email, password);
+  },
+
+  // Google OAuth authentication
+  async signInWithGoogle() {
+    try {
+      // Get the list of available OAuth providers
+      const authMethods = await pb.collection('users').listAuthMethods();
+
+      // Find Google OAuth provider
+      const googleProvider = authMethods.authProviders.find(
+        (provider) => provider.name === 'google'
+      );
+
+      if (!googleProvider) {
+        throw new Error('Google OAuth provider is not configured in PocketBase');
+      }
+
+      // Redirect to Google OAuth
+      const authUrl = googleProvider.authUrl + pb.baseUrl + '/api/oauth2-redirect';
+
+      // Open popup for OAuth
+      const popup = window.open(
+        authUrl,
+        'oauth2-popup',
+        'width=500,height=600,left=' +
+        (window.screen.width / 2 - 250) +
+        ',top=' +
+        (window.screen.height / 2 - 300)
+      );
+
+      return new Promise((resolve, reject) => {
+        const checkClosed = setInterval(() => {
+          if (popup?.closed) {
+            clearInterval(checkClosed);
+            if (pb.authStore.isValid) {
+              resolve(pb.authStore.model);
+            } else {
+              reject(new Error('Authentication was cancelled'));
+            }
+          }
+        }, 1000);
+
+        // Listen for message from popup
+        const handleMessage = (event: MessageEvent) => {
+          if (event.origin !== window.location.origin) return;
+
+          if (event.data.type === 'oauth2-success') {
+            clearInterval(checkClosed);
+            popup?.close();
+            window.removeEventListener('message', handleMessage);
+            resolve(event.data.user);
+          } else if (event.data.type === 'oauth2-error') {
+            clearInterval(checkClosed);
+            popup?.close();
+            window.removeEventListener('message', handleMessage);
+            reject(new Error(event.data.error));
+          }
+        };
+
+        window.addEventListener('message', handleMessage);
+      });
+    } catch (error) {
+      console.error('Google OAuth error:', error);
+      throw error;
+    }
   },
 
   // Sign out

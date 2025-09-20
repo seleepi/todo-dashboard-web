@@ -15,12 +15,12 @@ RUN cd /tmp && \
     chmod +x pocketbase && \
     mv pocketbase /pb/
 
-# Copy migrations if they exist
-COPY pb_migrations/ ./pb_migrations/ 2>/dev/null || true
+# Copy migrations
+COPY pocketbase/pb_migrations/ ./pb_migrations/
 
-# Create data directory and declare as volume
+# Create data directory (Railway volumes handle persistence)
 RUN mkdir -p /pb/pb_data
-VOLUME ["/pb/pb_data"]
+# Test comment for restart
 
 # Expose port
 EXPOSE 8080
