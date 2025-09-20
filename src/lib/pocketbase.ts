@@ -66,8 +66,8 @@ export const authHelpers = {
       const authMethods = await pb.collection('users').listAuthMethods();
 
       // Find Google OAuth provider
-      const googleProvider = authMethods.authProviders.find(
-        (provider) => provider.name === 'google'
+      const googleProvider = (authMethods as any).authProviders?.find(
+        (provider: any) => provider.name === 'google'
       );
 
       if (!googleProvider) {
@@ -75,7 +75,7 @@ export const authHelpers = {
       }
 
       // Redirect to Google OAuth
-      const authUrl = googleProvider.authUrl + pb.baseUrl + '/api/oauth2-redirect';
+      const authUrl = googleProvider.authUrl;
 
       // Open popup for OAuth
       const popup = window.open(
