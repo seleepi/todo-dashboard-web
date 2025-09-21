@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, memo } from 'react';
 import { Widget, WidgetType, DashboardState } from '@/types/widget';
 import { WidgetComponent } from '@/components/widgets/WidgetComponent';
 import { AddWidgetButton } from '@/components/layout/AddWidgetButton';
@@ -23,7 +23,7 @@ interface DashboardProps {
   onLogout?: () => void;
 }
 
-export function Dashboard({
+function DashboardComponent({
   dashboardId,
   initialState,
   currentDashboard,
@@ -42,6 +42,9 @@ export function Dashboard({
 
   // Load widgets from PocketBase when dashboardId changes
   useEffect(() => {
+    // Reset component mount state
+    isMountedRef.current = true;
+
     // Clear previous subscription before setting up new one
     if (subscription) {
       subscription();
@@ -61,12 +64,13 @@ export function Dashboard({
 
     // Cleanup subscription on unmount or dashboardId change
     return () => {
+      isMountedRef.current = false;
       if (subscription) {
         subscription();
         setSubscription(null);
       }
     };
-  }, [dashboardId]);
+  }, [dashboardId, initialState, loadDashboardData, setupRealTimeSubscription]);
 
   // Cleanup effect on unmount
   useEffect(() => {
@@ -79,7 +83,7 @@ export function Dashboard({
   }, []);
 
   // Setup real-time subscription for widget changes
-  const setupRealTimeSubscription = () => {
+  const setupRealTimeSubscription = useCallback(() => {
     if (!dashboardId) return;
 
     try {
@@ -161,9 +165,9 @@ export function Dashboard({
     } catch (error) {
       console.error('Failed to setup real-time subscription:', error);
     }
-  };
+  }, [dashboardId]);
 
-  const loadDashboardData = async () => {
+  const loadDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
       
@@ -200,7 +204,7 @@ export function Dashboard({
         setIsLoading(false);
       }
     }
-  };
+  }, [dashboardId]);
 
   const saveWidgetToPocketBase = async (widget: Widget) => {
     if (!dashboardId) return;
@@ -388,3 +392,5 @@ export function Dashboard({
     </div>
   );
 }
+
+export const Dashboard = memo(DashboardComponent);
