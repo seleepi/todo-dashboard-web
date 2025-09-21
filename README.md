@@ -29,22 +29,49 @@ npm run dev
 ## Application Workflow
 
 ### User Flow
-1. **Login**: Use `test@gmail.com` / `12345678` to log in
-2. **Dashboard Selection**: Choose from available dashboards (e.g., "내 첫 대시보드")
-3. **Widget Management**: Add/remove/move widgets on the dashboard
-4. **Real-time Sync**: All changes instantly sync across tabs and users
-5. **Multi-tab Support**: Open same dashboard in multiple tabs - changes appear instantly
-6. **Admin Panel Integration**: Changes made in PocketBase admin panel appear in real-time
+1. **Authentication**:
+   - **Google OAuth**: One-click login with Google account (automatic user registration)
+   - **Test Account**: Use `test@gmail.com` / `12345678` for manual login
+   - **Secure Access**: Each user gets isolated PocketBase environment
+
+2. **Dashboard Management**:
+   - **First Time**: No dashboards available - create your first dashboard
+   - **Dashboard Creation**: Click "새 대시보드 만들기" → Enter name → Auto-navigate to new dashboard
+   - **Dashboard Navigation**: Use hamburger menu (≡) to switch between dashboards
+   - **Sidebar Features**: Create, select, and manage multiple dashboards from slide-out menu
+
+3. **Widget Management**:
+   - **Add Widgets**: Click "Add Widget" → Choose type (TODO, Text, Clock/Weather, YouTube)
+   - **Drag & Drop**: Move widgets around with mouse drag
+   - **Resize**: Drag corner/edge handles to resize widgets
+   - **Edit Content**: Click widgets to edit (text, tasks, YouTube URLs)
+   - **Collapse/Remove**: Use widget header buttons
+
+4. **Real-time Collaboration**:
+   - **Multi-tab Support**: Open same dashboard in multiple tabs - changes appear instantly
+   - **Live Sync**: All changes automatically saved and synced across sessions
+   - **Admin Panel Integration**: Changes from PocketBase admin panel reflect in real-time
 
 ### Data Flow
-1. **Authentication**: PocketBase handles user authentication
-2. **Dashboard Loading**: Load dashboard list from PocketBase after login
-3. **Widget Loading**: Load widgets for selected dashboard
-4. **Real-time Subscriptions**: Subscribe to widget changes for live updates
-5. **Bi-directional Sync**: 
-   - **Web → Database**: Widget changes instantly saved to PocketBase
-   - **Database → Web**: Changes from admin panel/other tabs instantly reflected
-6. **State Management**: Local React state + PocketBase persistence + real-time sync
+1. **Authentication**:
+   - Google OAuth 2.0 + PKCE flow for secure login
+   - PocketBase handles user management and session tokens
+   - Each user gets private data space (admin cannot access user data)
+
+2. **Dashboard State Management**:
+   - **Dashboard Selection**: Load user's dashboard list from PocketBase
+   - **Dashboard Switching**: Sidebar navigation with React key-based remounting
+   - **State Isolation**: Each dashboard maintains independent widget state
+
+3. **Widget Persistence**:
+   - **Local State**: React useState for immediate UI updates
+   - **Database Sync**: Automatic save to PocketBase on every change
+   - **Real-time Updates**: PocketBase subscriptions for live collaboration
+
+4. **Memory Management**:
+   - **Subscription Cleanup**: Automatic cleanup when switching dashboards
+   - **Component Lifecycle**: Safe state updates with mount tracking
+   - **Performance**: React.memo and useCallback for optimized rendering
 
 ## Debug & Troubleshooting
 
