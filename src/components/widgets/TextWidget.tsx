@@ -34,7 +34,7 @@ export function TextWidget({ widget, onUpdate }: TextWidgetProps) {
           <textarea
             value={editText}
             onChange={(e) => setEditText(e.target.value)}
-            className="flex-1 w-full p-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="flex-1 w-full p-2 border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 placeholder-gray-500"
             placeholder="Enter your text here..."
           />
           <div className="flex gap-2 mt-2">

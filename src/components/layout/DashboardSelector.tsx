@@ -145,7 +145,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
                     createDashboard()
                   }
                 }}
-                className="w-full p-2 border border-gray-300 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                className="w-full p-2 border border-gray-300 rounded mb-3 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 placeholder-gray-500"
                 disabled={isCreating}
                 autoFocus
               />

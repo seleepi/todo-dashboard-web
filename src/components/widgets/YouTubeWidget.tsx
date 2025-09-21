@@ -68,7 +68,7 @@ export function YouTubeWidget({ widget, onUpdate }: YouTubeWidgetProps) {
               value={inputUrl}
               onChange={(e) => setInputUrl(e.target.value)}
               placeholder="https://youtube.com/watch?v=..."
-              className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+              className="w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-red-500 text-gray-900 placeholder-gray-500"
               onKeyPress={(e) => e.key === 'Enter' && addVideo()}
             />
             <button
