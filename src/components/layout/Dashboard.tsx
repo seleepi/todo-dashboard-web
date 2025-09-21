@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Widget, WidgetType, DashboardState } from '@/types/widget';
 import { WidgetComponent } from '@/components/widgets/WidgetComponent';
 import { AddWidgetButton } from '@/components/layout/AddWidgetButton';
@@ -38,9 +38,22 @@ export function Dashboard({
   const [isLoading, setIsLoading] = useState(false);
   const [subscription, setSubscription] = useState<(() => void) | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const isMountedRef = useRef(true);
 
   // Load widgets from PocketBase when dashboardId changes
   useEffect(() => {
+    // Clear previous subscription before setting up new one
+    if (subscription) {
+      subscription();
+      setSubscription(null);
+    }
+
+    // Reset dashboard state when switching dashboards
+    setDashboardState({
+      widgets: [],
+      background: '#f0f9ff'
+    });
+
     if (dashboardId && !initialState) {
       loadDashboardData();
       setupRealTimeSubscription();
@@ -55,6 +68,16 @@ export function Dashboard({
     };
   }, [dashboardId]);
 
+  // Cleanup effect on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (subscription) {
+        subscription();
+      }
+    };
+  }, []);
+
   // Setup real-time subscription for widget changes
   const setupRealTimeSubscription = () => {
     if (!dashboardId) return;
@@ -62,7 +85,12 @@ export function Dashboard({
     try {
       const unsubscribe = realtimeHelpers.subscribeToWidgets(dashboardId, (event: PocketBaseEvent) => {
         console.log('Real-time event:', event);
-        
+
+        // Check if this is still the current dashboard
+        if (event.record.dashboard !== dashboardId) {
+          return;
+        }
+
         switch (event.action) {
           case 'create':
             // Add new widget from other sources
@@ -74,8 +102,11 @@ export function Dashboard({
               data: event.record.data || {},
               collapsed: event.record.collapsed || false
             };
-            
+
             setDashboardState(prev => {
+              // Prevent state update if component is unmounted
+              if (!isMountedRef.current) return prev;
+
               // Check if widget already exists to avoid duplicates
               if (prev.widgets.find(w => w.id === newWidget.id)) {
                 return prev;
@@ -98,20 +129,30 @@ export function Dashboard({
               collapsed: event.record.collapsed || false
             };
 
-            setDashboardState(prev => ({
-              ...prev,
-              widgets: prev.widgets.map(w => 
-                w.id === updatedWidget.id ? updatedWidget : w
-              )
-            }));
+            setDashboardState(prev => {
+              // Prevent state update if component is unmounted
+              if (!isMountedRef.current) return prev;
+
+              return {
+                ...prev,
+                widgets: prev.widgets.map(w =>
+                  w.id === updatedWidget.id ? updatedWidget : w
+                )
+              };
+            });
             break;
 
           case 'delete':
             // Remove widget deleted from other sources
-            setDashboardState(prev => ({
-              ...prev,
-              widgets: prev.widgets.filter(w => w.id !== event.record.id)
-            }));
+            setDashboardState(prev => {
+              // Prevent state update if component is unmounted
+              if (!isMountedRef.current) return prev;
+
+              return {
+                ...prev,
+                widgets: prev.widgets.filter(w => w.id !== event.record.id)
+              };
+            });
             break;
         }
       });
@@ -144,14 +185,20 @@ export function Dashboard({
         collapsed: widget.collapsed || false
       }));
 
-      setDashboardState({
-        widgets: loadedWidgets,
-        background: dashboard.background || '#f0f9ff'
-      });
+      // Only update state if component is still mounted
+      if (isMountedRef.current) {
+        setDashboardState({
+          widgets: loadedWidgets,
+          background: dashboard.background || '#f0f9ff'
+        });
+      }
     } catch (error) {
       console.error('Failed to load dashboard data:', error);
     } finally {
-      setIsLoading(false);
+      // Only update loading state if component is still mounted
+      if (isMountedRef.current) {
+        setIsLoading(false);
+      }
     }
   };
 
