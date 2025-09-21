@@ -40,48 +40,6 @@ function DashboardComponent({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMountedRef = useRef(true);
 
-  // Load widgets from PocketBase when dashboardId changes
-  useEffect(() => {
-    // Reset component mount state
-    isMountedRef.current = true;
-
-    // Clear previous subscription before setting up new one
-    if (subscription) {
-      subscription();
-      setSubscription(null);
-    }
-
-    // Reset dashboard state when switching dashboards
-    setDashboardState({
-      widgets: [],
-      background: '#f0f9ff'
-    });
-
-    if (dashboardId && !initialState) {
-      loadDashboardData();
-      setupRealTimeSubscription();
-    }
-
-    // Cleanup subscription on unmount or dashboardId change
-    return () => {
-      isMountedRef.current = false;
-      if (subscription) {
-        subscription();
-        setSubscription(null);
-      }
-    };
-  }, [dashboardId, initialState, loadDashboardData, setupRealTimeSubscription]);
-
-  // Cleanup effect on unmount
-  useEffect(() => {
-    return () => {
-      isMountedRef.current = false;
-      if (subscription) {
-        subscription();
-      }
-    };
-  }, []);
-
   // Setup real-time subscription for widget changes
   const setupRealTimeSubscription = useCallback(() => {
     if (!dashboardId) return;
@@ -170,10 +128,10 @@ function DashboardComponent({
   const loadDashboardData = useCallback(async () => {
     try {
       setIsLoading(true);
-      
+
       // Load dashboard info
       const dashboard = await pb.collection('dashboards').getOne(dashboardId!);
-      
+
       // Load widgets for this dashboard
       const widgets = await pb.collection('widgets').getFullList({
         filter: `dashboard = "${dashboardId}"`,
@@ -205,6 +163,49 @@ function DashboardComponent({
       }
     }
   }, [dashboardId]);
+
+  // Load widgets from PocketBase when dashboardId changes
+  useEffect(() => {
+    // Reset component mount state
+    isMountedRef.current = true;
+
+    // Clear previous subscription before setting up new one
+    if (subscription) {
+      subscription();
+      setSubscription(null);
+    }
+
+    // Reset dashboard state when switching dashboards
+    setDashboardState({
+      widgets: [],
+      background: '#f0f9ff'
+    });
+
+    if (dashboardId && !initialState) {
+      loadDashboardData();
+      setupRealTimeSubscription();
+    }
+
+    // Cleanup subscription on unmount or dashboardId change
+    return () => {
+      isMountedRef.current = false;
+      if (subscription) {
+        subscription();
+        setSubscription(null);
+      }
+    };
+  }, [dashboardId, initialState, loadDashboardData, setupRealTimeSubscription]);
+
+  // Cleanup effect on unmount
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+      if (subscription) {
+        subscription();
+      }
+    };
+  }, []);
+
 
   const saveWidgetToPocketBase = async (widget: Widget) => {
     if (!dashboardId) return;
