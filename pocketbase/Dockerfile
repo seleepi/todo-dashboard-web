@@ -15,8 +15,8 @@ RUN cd /tmp && \
     chmod +x pocketbase && \
     mv pocketbase /pb/
 
-# Copy migrations if they exist
-COPY pb_migrations/ ./pb_migrations/ 2>/dev/null || true
+# Create migrations directory
+RUN mkdir -p /pb/pb_migrations
 
 # Create data directory and declare as volume
 RUN mkdir -p /pb/pb_data
