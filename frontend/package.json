@@ -1,0 +1,43 @@
+{
+  "name": "todo-dashboard",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build --turbopack",
+    "start": "next start",
+    "lint": "eslint"
+  },
+  "dependencies": {
+    "@google-cloud/local-auth": "^3.0.1",
+    "google-auth-library": "^10.3.0",
+    "next": "15.5.0",
+    "pocketbase": "^0.26.2",
+    "react": "19.1.0",
+    "react-dom": "19.1.0"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.5.0",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "description": "A personalized dashboard application where users can place various widgets including TODO lists, time, weather, and YouTube player widgets.",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/seleepi/todo-dashboard-web.git"
+  },
+  "keywords": [],
+  "author": "selee_pi",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/seleepi/todo-dashboard-web/issues"
+  },
+  "homepage": "https://github.com/seleepi/todo-dashboard-web#readme"
+}
