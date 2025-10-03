@@ -32,13 +32,17 @@ export default function Home() {
     checkAuth()
 
     // Listen for auth changes
-    pb.authStore.onChange(() => {
+    const unsubscribe = pb.authStore.onChange(() => {
       const isValid = pb.authStore.isValid
       setIsAuthenticated(isValid)
       if (!isValid) {
         setSelectedDashboard(null)
       }
     })
+    // 컴포넌트가 사라질 때 이벤트 리스너 제거
+    return () => {
+        unsubscribe()
+    }
   }, [])    // []는 "페이지가 처음 로드될 때만 실행해라"는 뜻
   // useEffect의 끝부분
 
@@ -52,6 +56,7 @@ export default function Home() {
   }
 
   const handleLogout = () => {
+    pb.authStore.clear()  // PocketBase에 저장된 로그인 정보 삭제
     setIsAuthenticated(false)
     setSelectedDashboard(null)
   }

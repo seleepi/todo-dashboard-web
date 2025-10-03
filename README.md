@@ -6,7 +6,7 @@ A personalized dashboard application where users can place various widgets inclu
 
 ```
 todo-dashboard-web/
-├── frontend/           # Next.js frontend application
+├── frontend/          # Next.js frontend application
 │   ├── src/           # Source code
 │   ├── public/        # Static assets
 │   └── ...            # Config files (package.json, tsconfig.json, etc.)
