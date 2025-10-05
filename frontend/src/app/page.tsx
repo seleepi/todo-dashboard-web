@@ -31,7 +31,7 @@ export default function Home() {
 
     checkAuth()
 
-    // Listen for auth changes
+    // Listen for auth changes and save cleanup function to variable 'unsubscribe'
     const unsubscribe = pb.authStore.onChange(() => {
       const isValid = pb.authStore.isValid
       setIsAuthenticated(isValid)

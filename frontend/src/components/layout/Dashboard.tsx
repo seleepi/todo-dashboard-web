@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, memo } from 'react';
+import { useState, useEffect, useRef, memo } from 'react';
 import { Widget, WidgetType, DashboardState } from '@/types/widget';
 import { WidgetComponent } from '@/components/widgets/WidgetComponent';
 import { AddWidgetButton } from '@/components/layout/AddWidgetButton';
@@ -32,180 +32,136 @@ function DashboardComponent({
 }: DashboardProps) {
   const [dashboardState, setDashboardState] = useState<DashboardState>({
     widgets: initialState?.widgets || [],
-    background: initialState?.background || '#f0f9ff', // light blue background
+    background: initialState?.background || '#f0f9ff',
   });
   const [showGrid, setShowGrid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [subscription, setSubscription] = useState<(() => void) | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const isMountedRef = useRef(true);
 
-  // Setup real-time subscription for widget changes
-  const setupRealTimeSubscription = useCallback(() => {
-    if (!dashboardId) return;
+  const subscriptionRef = useRef<(() => void) | null>(null);
+  const pendingActionsRef = useRef<Set<string>>(new Set());
 
-    try {
-      const unsubscribe = realtimeHelpers.subscribeToWidgets(dashboardId, (event: PocketBaseEvent) => {
-        console.log('Real-time event:', event);
-
-        // Check if this is still the current dashboard
-        if (event.record.dashboard !== dashboardId) {
-          return;
-        }
-
-        switch (event.action) {
-          case 'create':
-            // Add new widget from other sources
-            const newWidget: Widget = {
-              id: event.record.id,
-              type: event.record.type as WidgetType,
-              position: { x: event.record.position_x, y: event.record.position_y },
-              size: { width: event.record.size_width, height: event.record.size_height },
-              data: event.record.data || {},
-              collapsed: event.record.collapsed || false
-            };
-
-            setDashboardState(prev => {
-              // Prevent state update if component is unmounted
-              if (!isMountedRef.current) return prev;
-
-              // Check if widget already exists to avoid duplicates
-              if (prev.widgets.find(w => w.id === newWidget.id)) {
-                return prev;
-              }
-              return {
-                ...prev,
-                widgets: [...prev.widgets, newWidget]
-              };
-            });
-            break;
-
-          case 'update':
-            // Update existing widget from other sources
-            const updatedWidget: Widget = {
-              id: event.record.id,
-              type: event.record.type as WidgetType,
-              position: { x: event.record.position_x, y: event.record.position_y },
-              size: { width: event.record.size_width, height: event.record.size_height },
-              data: event.record.data || {},
-              collapsed: event.record.collapsed || false
-            };
-
-            setDashboardState(prev => {
-              // Prevent state update if component is unmounted
-              if (!isMountedRef.current) return prev;
-
-              return {
-                ...prev,
-                widgets: prev.widgets.map(w =>
-                  w.id === updatedWidget.id ? updatedWidget : w
-                )
-              };
-            });
-            break;
-
-          case 'delete':
-            // Remove widget deleted from other sources
-            setDashboardState(prev => {
-              // Prevent state update if component is unmounted
-              if (!isMountedRef.current) return prev;
-
-              return {
-                ...prev,
-                widgets: prev.widgets.filter(w => w.id !== event.record.id)
-              };
-            });
-            break;
-        }
-      });
-
-      setSubscription(() => unsubscribe);
-    } catch (error) {
-      console.error('Failed to setup real-time subscription:', error);
+  useEffect(() => {
+    if (!dashboardId || initialState) {
+      return;
     }
-  }, [dashboardId]);
 
-  const loadDashboardData = useCallback(async () => {
-    try {
-      setIsLoading(true);
+    setIsLoading(true);
 
-      // Load dashboard info
-      const dashboard = await pb.collection('dashboards').getOne(dashboardId!);
+    const loadDashboardData = async () => {
+      try {
+        const dashboard = await pb.collection('dashboards').getOne(dashboardId);
+        const widgets = await pb.collection('widgets').getFullList({
+          filter: `dashboard = "${dashboardId}"`,
+          sort: 'created'
+        });
 
-      // Load widgets for this dashboard
-      const widgets = await pb.collection('widgets').getFullList({
-        filter: `dashboard = "${dashboardId}"`,
-        sort: 'created'
-      });
+        const loadedWidgets: Widget[] = widgets.map(widget => ({
+          id: widget.id,
+          type: widget.type as WidgetType,
+          position: { x: widget.position_x, y: widget.position_y },
+          size: { width: widget.size_width, height: widget.size_height },
+          data: widget.data || {},
+          collapsed: widget.collapsed || false
+        }));
 
-      const loadedWidgets: Widget[] = widgets.map(widget => ({
-        id: widget.id,
-        type: widget.type as WidgetType,
-        position: { x: widget.position_x, y: widget.position_y },
-        size: { width: widget.size_width, height: widget.size_height },
-        data: widget.data || {},
-        collapsed: widget.collapsed || false
-      }));
-
-      // Only update state if component is still mounted
-      if (isMountedRef.current) {
         setDashboardState({
           widgets: loadedWidgets,
           background: dashboard.background || '#f0f9ff'
         });
-      }
-    } catch (error) {
-      console.error('Failed to load dashboard data:', error);
-    } finally {
-      // Only update loading state if component is still mounted
-      if (isMountedRef.current) {
+      } catch (error) {
+        console.error('대시보드 데이터 로드 실패:', error);
+      } finally {
         setIsLoading(false);
       }
-    }
-  }, [dashboardId]);
+    };
 
-  // Load widgets from PocketBase when dashboardId changes
-  useEffect(() => {
-    // Reset component mount state
-    isMountedRef.current = true;
+    // ✅ async 함수로 변경!
+    const setupRealTimeSubscription = async () => {
+      try {
+        // ✅ await 추가!
+        const unsubscribe = await realtimeHelpers.subscribeToWidgets(
+          dashboardId,
+          (event: PocketBaseEvent) => {
+            console.log('실시간 이벤트:', event);
 
-    // Clear previous subscription before setting up new one
-    if (subscription) {
-      subscription();
-      setSubscription(null);
-    }
+            if (event.record.dashboard !== dashboardId) {
+              return;
+            }
 
-    // Reset dashboard state when switching dashboards
-    setDashboardState({
-      widgets: [],
-      background: '#f0f9ff'
-    });
+            if (pendingActionsRef.current.has(event.record.id)) {
+              console.log('본인 액션 감지, 중복 업데이트 방지:', event.record.id);
+              pendingActionsRef.current.delete(event.record.id);
+              return;
+            }
 
-    if (dashboardId && !initialState) {
-      loadDashboardData();
-      setupRealTimeSubscription();
-    }
+            switch (event.action) {
+              case 'create':
+                const newWidget: Widget = {
+                  id: event.record.id,
+                  type: event.record.type as WidgetType,
+                  position: { x: event.record.position_x, y: event.record.position_y },
+                  size: { width: event.record.size_width, height: event.record.size_height },
+                  data: event.record.data || {},
+                  collapsed: event.record.collapsed || false
+                };
 
-    // Cleanup subscription on unmount or dashboardId change
-    return () => {
-      isMountedRef.current = false;
-      if (subscription) {
-        subscription();
-        setSubscription(null);
+                setDashboardState(prev => {
+                  if (prev.widgets.find(w => w.id === newWidget.id)) {
+                    return prev;
+                  }
+                  return {
+                    ...prev,
+                    widgets: [...prev.widgets, newWidget]
+                  };
+                });
+                break;
+
+              case 'update':
+                const updatedWidget: Widget = {
+                  id: event.record.id,
+                  type: event.record.type as WidgetType,
+                  position: { x: event.record.position_x, y: event.record.position_y },
+                  size: { width: event.record.size_width, height: event.record.size_height },
+                  data: event.record.data || {},
+                  collapsed: event.record.collapsed || false
+                };
+
+                setDashboardState(prev => ({
+                  ...prev,
+                  widgets: prev.widgets.map(w =>
+                    w.id === updatedWidget.id ? updatedWidget : w
+                  )
+                }));
+                break;
+
+              case 'delete':
+                setDashboardState(prev => ({
+                  ...prev,
+                  widgets: prev.widgets.filter(w => w.id !== event.record.id)
+                }));
+                break;
+            }
+          }
+        );
+
+        subscriptionRef.current = unsubscribe;
+      } catch (error) {
+        console.error('실시간 구독 설정 실패:', error);
       }
     };
-  }, [dashboardId, initialState, loadDashboardData, setupRealTimeSubscription]);
 
-  // Cleanup effect on unmount
-  useEffect(() => {
+    loadDashboardData();
+    setupRealTimeSubscription();
+
     return () => {
-      isMountedRef.current = false;
-      if (subscription) {
-        subscription();
+      if (subscriptionRef.current) {
+        subscriptionRef.current();
+        subscriptionRef.current = null;
       }
+      pendingActionsRef.current.clear();
     };
-  }, []);
-
+  }, [dashboardId, initialState]);
 
   const saveWidgetToPocketBase = async (widget: Widget) => {
     if (!dashboardId) return;
@@ -223,28 +179,42 @@ function DashboardComponent({
       };
 
       if (widget.id.startsWith('widget-')) {
-        // Create new widget
+        pendingActionsRef.current.add(widget.id);
+
         const record = await pb.collection('widgets').create(widgetData);
-        // Update local widget ID to match PocketBase ID
+
+        pendingActionsRef.current.delete(widget.id);
+        pendingActionsRef.current.add(record.id);
+
         setDashboardState(prev => ({
           ...prev,
-          widgets: prev.widgets.map(w => 
+          widgets: prev.widgets.map(w =>
             w.id === widget.id ? { ...w, id: record.id } : w
           )
         }));
+
+        setTimeout(() => {
+          pendingActionsRef.current.delete(record.id);
+        }, 1000);
       } else {
-        // Update existing widget
+        pendingActionsRef.current.add(widget.id);
+
         await pb.collection('widgets').update(widget.id, widgetData);
+
+        setTimeout(() => {
+          pendingActionsRef.current.delete(widget.id);
+        }, 1000);
       }
     } catch (error) {
-      console.error('Failed to save widget:', error);
+      console.error('위젯 저장 실패:', error);
+      pendingActionsRef.current.delete(widget.id);
     }
   };
 
   const addWidget = async (type: WidgetType) => {
     const position = getNextGridPosition(dashboardState.widgets);
     const size = getDefaultWidgetSize(type);
-    
+
     const newWidget: Widget = {
       id: `widget-${Date.now()}`,
       type,
@@ -258,7 +228,6 @@ function DashboardComponent({
       widgets: [...prev.widgets, newWidget]
     }));
 
-    // Save to PocketBase
     await saveWidgetToPocketBase(newWidget);
   };
 
@@ -268,28 +237,31 @@ function DashboardComponent({
       widgets: prev.widgets.filter(w => w.id !== widgetId)
     }));
 
-    // Remove from PocketBase
     if (!widgetId.startsWith('widget-')) {
       try {
+        pendingActionsRef.current.add(widgetId);
         await pb.collection('widgets').delete(widgetId);
+
+        setTimeout(() => {
+          pendingActionsRef.current.delete(widgetId);
+        }, 1000);
       } catch (error) {
-        console.error('Failed to delete widget:', error);
+        console.error('위젯 삭제 실패:', error);
+        pendingActionsRef.current.delete(widgetId);
       }
     }
   };
 
   const updateWidget = async (widgetId: string, updates: Partial<Widget>) => {
-    // Get the current widget before updating state
     const currentWidget = dashboardState.widgets.find(w => w.id === widgetId);
-    
+
     setDashboardState(prev => ({
       ...prev,
-      widgets: prev.widgets.map(w => 
+      widgets: prev.widgets.map(w =>
         w.id === widgetId ? { ...w, ...updates } : w
       )
     }));
 
-    // Save changes to PocketBase with the merged widget data
     if (currentWidget) {
       const updatedWidget = { ...currentWidget, ...updates };
       await saveWidgetToPocketBase(updatedWidget);
@@ -305,11 +277,10 @@ function DashboardComponent({
   }
 
   return (
-    <div 
+    <div
       className="min-h-screen relative overflow-hidden"
       style={{ backgroundColor: dashboardState.background }}
     >
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 p-4 bg-white/90 backdrop-blur-sm border-b shadow-sm">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
@@ -348,7 +319,6 @@ function DashboardComponent({
         </div>
       </header>
 
-      {/* Sidebar */}
       <Sidebar
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -365,10 +335,8 @@ function DashboardComponent({
         }}
       />
 
-      {/* Grid Overlay */}
       <GridOverlay show={showGrid} />
 
-      {/* Dashboard Grid */}
       <main className="pt-24 p-4 relative min-h-screen">
         {dashboardState.widgets.map(widget => (
           <WidgetComponent
@@ -380,7 +348,6 @@ function DashboardComponent({
           />
         ))}
 
-        {/* Empty state */}
         {dashboardState.widgets.length === 0 && (
           <div className="flex items-center justify-center min-h-96">
             <div className="text-center text-gray-500">
