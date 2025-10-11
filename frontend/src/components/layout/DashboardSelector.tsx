@@ -21,6 +21,8 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
   const [isCreating, setIsCreating] = useState(false)
   const [showCreateForm, setShowCreateForm] = useState(false)
   const [newDashboardName, setNewDashboardName] = useState('')
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   useEffect(() => {
     loadDashboards()
@@ -91,6 +93,23 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
   const handleLogout = () => {
     pb.authStore.clear()
     onLogout()
+  }
+
+  const deleteDashboard = async (dashboardId: string) => {
+    try {
+      setIsDeleting(true)
+      setError('')
+
+      await pb.collection('dashboards').delete(dashboardId)
+
+      setDashboards(prev => prev.filter(d => d.id !== dashboardId))
+      setDeleteConfirmId(null)
+    } catch (err) {
+      console.error('Failed to delete dashboard:', err)
+      setError('대시보드 삭제에 실패했습니다.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   if (isLoading) {
@@ -181,26 +200,42 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
             </div>
           ) : (
             dashboards.map((dashboard) => (
-              <button
+              <div
                 key={dashboard.id}
-                onClick={() => onDashboardSelect(dashboard)}
-                className="w-full p-4 text-left border border-gray-300 rounded-lg hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors"
+                className="relative w-full p-4 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-medium text-gray-900">
-                      {dashboard.name}
-                    </h3>
-                    <p className="text-sm text-gray-500">
-                      ID: {dashboard.id}
-                    </p>
+                <button
+                  onClick={() => onDashboardSelect(dashboard)}
+                  className="w-full text-left focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 rounded-lg"
+                >
+                  <div className="flex items-center justify-between pr-8">
+                    <div>
+                      <h3 className="text-lg font-medium text-gray-900">
+                        {dashboard.name}
+                      </h3>
+                      <p className="text-sm text-gray-500">
+                        ID: {dashboard.id}
+                      </p>
+                    </div>
+                    <div
+                      className="w-8 h-8 rounded border border-gray-300"
+                      style={{ backgroundColor: dashboard.background }}
+                    />
                   </div>
-                  <div
-                    className="w-8 h-8 rounded border border-gray-300"
-                    style={{ backgroundColor: dashboard.background }}
-                  />
-                </div>
-              </button>
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setDeleteConfirmId(dashboard.id)
+                  }}
+                  className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                  title="삭제"
+                >
+                  <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                    <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </button>
+              </div>
             ))
           )}
         </div>
@@ -214,6 +249,36 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
           </button>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirmId && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              대시보드 삭제
+            </h3>
+            <p className="text-gray-600 mb-6">
+              정말 이 대시보드를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => deleteDashboard(deleteConfirmId)}
+                disabled={isDeleting}
+                className="flex-1 py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isDeleting ? '삭제 중...' : '삭제'}
+              </button>
+              <button
+                onClick={() => setDeleteConfirmId(null)}
+                disabled={isDeleting}
+                className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
+              >
+                취소
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

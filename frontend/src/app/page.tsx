@@ -15,7 +15,8 @@ interface DashboardData {
   background: string
 }
 
-// 이 페이지의 메인함수, export default는 "이 함수를 다른 곳에서 사용할 수 있게 내보내기"
+// 이 페이지의 메인함수, export는 "이 함수를 다른 곳에서 사용할 수 있게 내보내기"
+// page 컴포넌트는 default로 내보내야 함, 보통은 named 권장
 export default function Home() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [selectedDashboard, setSelectedDashboard] = useState<DashboardData | null>(null)    // DashboardData 타입이거나 null이어야 함
@@ -82,13 +83,15 @@ export default function Home() {
       />
     )
   }
-  // 모든 조건을 통과했으면 (로그인도 했고, 대시보드도 선택했으면) 실제 대시보드 보여주기
+  // 모든 조건을 통과했으면 (로그인도 했고, 대시보드도 선택했으면) Dashboard 함수를 호출하여 실제 대시보드 렌더링
+  // page는 전체 앱의 흐름을 제어하고 대시보드의 로그인 여부 / 대시보드 선택 및 전환 / 로딩 상태를 관리 - 어떤 화면을 보여줄 지 관리
+  // dashboard는 대시보드 내부적인 위젯 목록과 상태, 그리드, 사이드바 열림/닫힘 관리 - 자기 대시보드 객체에 무엇이 있는지 관리
   return (
     <Dashboard
-      key={selectedDashboard.id} // Force component remount when dashboard changes
-      dashboardId={selectedDashboard.id}
+      key={selectedDashboard.id} // Key for react, not for dashboard. Force component remount when dashboard changes
+      dashboardId={selectedDashboard.id}    // 대시보드 데이터 로드용 식별자
       currentDashboard={selectedDashboard}
-      onDashboardChange={handleDashboardSelect}
+      onDashboardChange={handleDashboardSelect} // 이 첨부된 함수들은 dashboard가 page에게 이벤트를 보고할 수 있게 하는 콜백 함수
       onLogout={handleLogout}
     />
   )

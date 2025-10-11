@@ -16,10 +16,13 @@ frontend/build
 frontend/*.tsbuildinfo
 frontend/next-env.d.ts
 
-# Backend
-backend/pb_data/*
-!backend/pb_data/types.d.ts
-backend/pocketbase.zip
+# Backend (backup - not actively used)
+backend-backup/pb_data/*
+!backend-backup/pb_data/types.d.ts
+backend-backup/pocketbase.zip
+
+# New PocketBase project location (separate repository)
+# C:\Users\sodi2\PycharmProjects\todo-dashboard-pocketbase
 
 # Environment files
 .env*
