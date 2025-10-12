@@ -65,8 +65,8 @@ export default function Home() {
   // 화면에 무엇을 보여줄지 결정하는 부분
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading...</div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-lg text-gray-700">Loading...</div>
       </div>
     )
   }

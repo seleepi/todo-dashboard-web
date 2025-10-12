@@ -288,8 +288,8 @@ function DashboardComponent({
 
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">대시보드를 불러오는 중...</div>
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="text-lg text-gray-700">대시보드를 불러오는 중...</div>
       </div>
     );
   }

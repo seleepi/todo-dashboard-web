@@ -4,8 +4,8 @@ A personalized dashboard application where users can place various widgets inclu
 
 ## 📁 Project Structure
 
-This repository contains the frontend application. The backend is maintained in a separate repository.
-
+This repository contains the frontend application. The backend is maintained in a separate repository.  
+Backend repository: https://github.com/seleepi/todo-dashboard-pocketbase
 ```
 todo-dashboard-web/
 ├── frontend/              # Next.js frontend application
@@ -17,38 +17,6 @@ todo-dashboard-web/
 │   ├── GOOGLE_OAUTH_SETUP.md
 │   └── pocketbase-setup.md
 └── README.md              # This file
-
-todo-dashboard-pocketbase/  # PocketBase backend (separate repository)
-├── .env.local
-├── Dockerfile.pocketbase   # Railway deployment configuration
-├── railway.json
-├── README.md
-├── DEPLOYMENT_GUIDE.md
-├── pb_migrations/          # Database schema migrations (in git)
-│   ├── 1755958549_created_dashboards.js
-│   ├── 1755963240_updated_dashboards.js
-│   └── 1755963564_created_widgets.js
-└── pocketbase/             # PocketBase executable and files
-    ├── pocketbase          # Linux executable
-    └── pb_data/            # Runtime database (Railway Volume, not in git)
-        ├── data.db         # User data, dashboards, widgets
-        ├── logs.db         # Application logs
-        └── types.d.ts      # Auto-generated TypeScript types
-
-Railway Deployment Architecture:
-┌─────────────────────────────────────────────────────────────┐
-│ Railway Service: todo-dashboard-pocketbase                  │
-│                                                             │
-│ ┌─────────────────┐                ┌────────────────────┐   │
-│ │    Container    │   Mount Path   │   Railway Volume   │   │
-│ │   /pb/pb_data/  │ ◄────────────► │   Persistent Data  │   │
-│ │                 │   /pb/pb_data  │   (data.db, logs)  │   │
-│ └─────────────────┘                └────────────────────┘   │
-│                                                             │
-│ GitHub pb_data/ files are NOT used (Volume is the source)   │
-└─────────────────────────────────────────────────────────────┘
-
-Backend repository: https://github.com/seleepi/todo-dashboard-pocketbase
 ```
 
 ## 🚀 Quick Start
