@@ -4,28 +4,65 @@ A personalized dashboard application where users can place various widgets inclu
 
 ## 📁 Project Structure
 
+This repository contains the frontend application. The backend is maintained in a separate repository.
+
 ```
 todo-dashboard-web/
-├── frontend/          # Next.js frontend application
-│   ├── src/           # Source code
-│   ├── public/        # Static assets
-│   └── ...            # Config files (package.json, tsconfig.json, etc.)
-├── backend/           # PocketBase backend
-│   ├── pocketbase/    # PocketBase configuration
-│   ├── pb_data/       # Database files
-│   └── pocketbase.exe # PocketBase executable (Windows)
-└── docs/              # Documentation
-    ├── README.md      # Detailed user guide
-    ├── GOOGLE_OAUTH_SETUP.md
-    └── pocketbase-setup.md
+├── frontend/              # Next.js frontend application
+│   ├── src/               # Source code
+│   ├── public/            # Static assets
+│   └── ...                # Config files (package.json, tsconfig.json, etc.)
+├── docs/                  # Documentation
+│   ├── README.md          # Detailed workflow (old version)
+│   ├── GOOGLE_OAUTH_SETUP.md
+│   └── pocketbase-setup.md
+└── README.md              # This file
+
+todo-dashboard-pocketbase/  # PocketBase backend (separate repository)
+├── .env.local
+├── Dockerfile.pocketbase   # Railway deployment configuration
+├── railway.json
+├── README.md
+├── DEPLOYMENT_GUIDE.md
+├── pb_migrations/          # Database schema migrations (in git)
+│   ├── 1755958549_created_dashboards.js
+│   ├── 1755963240_updated_dashboards.js
+│   └── 1755963564_created_widgets.js
+└── pocketbase/             # PocketBase executable and files
+    ├── pocketbase          # Linux executable
+    └── pb_data/            # Runtime database (Railway Volume, not in git)
+        ├── data.db         # User data, dashboards, widgets
+        ├── logs.db         # Application logs
+        └── types.d.ts      # Auto-generated TypeScript types
+
+Railway Deployment Architecture:
+┌─────────────────────────────────────────────────────────────┐
+│ Railway Service: todo-dashboard-pocketbase                  │
+│                                                             │
+│ ┌─────────────────┐                ┌────────────────────┐   │
+│ │    Container    │   Mount Path   │   Railway Volume   │   │
+│ │   /pb/pb_data/  │ ◄────────────► │   Persistent Data  │   │
+│ │                 │   /pb/pb_data  │   (data.db, logs)  │   │
+│ └─────────────────┘                └────────────────────┘   │
+│                                                             │
+│ GitHub pb_data/ files are NOT used (Volume is the source)   │
+└─────────────────────────────────────────────────────────────┘
+
+Backend repository: https://github.com/seleepi/todo-dashboard-pocketbase
 ```
 
 ## 🚀 Quick Start
 
 ### 1. Start Backend (PocketBase)
 
+The backend is maintained in a separate repository. Clone and run it:
+
 ```bash
-cd backend
+# Clone the backend repository
+git clone https://github.com/seleepi/todo-dashboard-pocketbase.git
+cd todo-dashboard-pocketbase
+
+# Download and run PocketBase
 ./pocketbase serve     # On Linux/Mac
 # or
 pocketbase.exe serve   # On Windows
