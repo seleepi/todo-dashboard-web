@@ -110,7 +110,7 @@ export default function Sidebar({
         <div className="flex flex-col h-full">
           {/* Header */}
           <div className="flex items-center justify-between p-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">대시보드</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Dashboards</h2>
             <button
               onClick={onClose}
               className="p-1 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -134,14 +134,14 @@ export default function Sidebar({
                     <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                     </svg>
-                    새 대시보드
+                    New Dashboard
                   </div>
                 </button>
               ) : (
                 <div className="space-y-3">
                   <input
                     type="text"
-                    placeholder="대시보드 이름"
+                    placeholder="Dashboard name"
                     value={newDashboardName}
                     onChange={(e) => setNewDashboardName(e.target.value)}
                     onKeyPress={(e) => {
@@ -159,7 +159,7 @@ export default function Sidebar({
                       disabled={isCreating || !newDashboardName.trim()}
                       className="flex-1 py-2 px-3 bg-indigo-600 text-white text-sm rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      {isCreating ? '생성 중...' : '생성'}
+                      {isCreating ? 'Creating...' : 'Create'}
                     </button>
                     <button
                       onClick={() => {
@@ -169,7 +169,7 @@ export default function Sidebar({
                       disabled={isCreating}
                       className="px-3 py-2 border border-gray-300 text-gray-700 text-sm rounded hover:bg-gray-50 disabled:opacity-50"
                     >
-                      취소
+                      Cancel
                     </button>
                   </div>
                 </div>
@@ -178,14 +178,14 @@ export default function Sidebar({
 
             {/* Dashboard List */}
             <div>
-              <h3 className="text-sm font-medium text-gray-700 mb-3">내 대시보드</h3>
+              <h3 className="text-sm font-medium text-gray-700 mb-3">My Dashboards</h3>
               {isLoading ? (
                 <div className="text-center py-4 text-gray-500">
-                  로딩 중...
+                  Loading...
                 </div>
               ) : dashboards.length === 0 ? (
                 <div className="text-center py-4 text-gray-500 text-sm">
-                  대시보드가 없습니다
+                  No dashboards
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -200,7 +200,7 @@ export default function Sidebar({
                         w-full p-3 text-left rounded-lg transition-colors
                         ${currentDashboard?.id === dashboard.id
                           ? 'bg-indigo-50 border border-indigo-200 text-indigo-900'
-                          : 'hover:bg-gray-50 border border-transparent'
+                          : 'hover:bg-gray-50 border border-transparent text-gray-700'
                         }
                       `}
                     >
@@ -230,7 +230,7 @@ export default function Sidebar({
               <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
               </svg>
-              로그아웃
+              Logout
             </button>
           </div>
         </div>

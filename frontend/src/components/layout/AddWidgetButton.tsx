@@ -12,7 +12,7 @@ export function AddWidgetButton({ onAddWidget }: AddWidgetButtonProps) {
 
   const widgetTypes: { type: WidgetType; label: string; description: string }[] = [
     { type: 'todo', label: 'TODO List', description: 'Create a task list with checkboxes' },
-    { type: 'text', label: 'Text & Photos', description: 'Add text content and images' },
+    { type: 'text', label: 'Text', description: 'Add text content' },
     { type: 'clock-weather', label: 'Clock & Weather', description: 'Show time and weather info' },
     { type: 'youtube', label: 'YouTube Player', description: 'Embed YouTube videos from links' },
   ];

@@ -21,6 +21,9 @@ todo-dashboard-web/
 
 ## 🚀 Quick Start
 
+### 0. Use App in Browser
+https://todo-dashboard.up.railway.app/
+
 ### 1. Start Backend (PocketBase)
 
 The backend is maintained in a separate repository. Clone and run it:

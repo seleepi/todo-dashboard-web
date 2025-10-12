@@ -22,25 +22,25 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
 
     try {
       if (isSignUp) {
-        // 회원가입
+        // Sign up
         if (!name.trim()) {
-          setError('이름을 입력해주세요.')
+          setError('Please enter your name.')
           return
         }
         await authHelpers.signUp(email, password, name)
-        // 회원가입 후 자동 로그인
+        // Auto login after sign up
         await pb.collection('users').authWithPassword(email, password)
       } else {
-        // 로그인
+        // Login
         await pb.collection('users').authWithPassword(email, password)
       }
       onLoginSuccess()
     } catch (err) {
       console.error('Auth failed:', err)
       if (isSignUp) {
-        setError('회원가입에 실패했습니다. 다시 시도해주세요.')
+        setError('Sign up failed. Please try again.')
       } else {
-        setError('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.')
+        setError('Login failed. Please check your email and password.')
       }
     } finally {
       setIsLoading(false)
@@ -55,16 +55,16 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
       await authHelpers.signInWithGoogle()
       onLoginSuccess()
     } catch (err: any) {
-      let errorMessage = 'Google 로그인에 실패했습니다.'
+      let errorMessage = 'Google login failed.'
 
       if (err.message?.includes('not configured')) {
-        errorMessage = 'Google OAuth가 설정되지 않았습니다. 관리자에게 문의하세요.'
+        errorMessage = 'Google OAuth is not configured. Please contact the administrator.'
       } else if (err.message?.includes('cancelled')) {
-        errorMessage = '로그인이 취소되었습니다.'
+        errorMessage = 'Login was cancelled.'
       } else if (err.message?.includes('popup')) {
-        errorMessage = '팝업이 차단되었습니다. 브라우저 설정을 확인해주세요.'
+        errorMessage = 'Popup was blocked. Please check your browser settings.'
       } else if (err.message) {
-        errorMessage = `Google 로그인 오류: ${err.message}`
+        errorMessage = `Google login error: ${err.message}`
       }
 
       setError(errorMessage)
@@ -81,7 +81,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
             TODO Dashboard
           </h2>
           <p className="mt-2 text-center text-sm text-gray-600">
-            {isSignUp ? '계정을 생성하여 시작하세요' : '로그인하여 대시보드를 시작하세요'}
+            {isSignUp ? 'Create an account to get started' : 'Log in to access your dashboard'}
           </p>
         </div>
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
@@ -95,7 +95,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                   autoComplete="name"
                   required
                   className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                  placeholder="이름"
+                  placeholder="Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
@@ -109,7 +109,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 autoComplete="email"
                 required
                 className={`appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 ${isSignUp ? '' : 'rounded-t-md'} focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm`}
-                placeholder="이메일 주소"
+                placeholder="Email address"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -122,7 +122,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 autoComplete="current-password"
                 required
                 className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="비밀번호"
+                placeholder="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -136,7 +136,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
           )}
 
           <div className="text-center text-sm text-gray-500">
-            <p>테스트 계정: test@gmail.com / 12345678</p>
+            <p>Test account: test@gmail.com / 12345678</p>
           </div>
 
           <div>
@@ -146,8 +146,8 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isLoading ?
-                (isSignUp ? '회원가입 중...' : '로그인 중...') :
-                (isSignUp ? '회원가입' : '이메일로 로그인')
+                (isSignUp ? 'Signing up...' : 'Logging in...') :
+                (isSignUp ? 'Sign Up' : 'Log in with Email')
               }
             </button>
           </div>
@@ -158,7 +158,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               onClick={() => setIsSignUp(!isSignUp)}
               className="text-indigo-600 hover:text-indigo-500 text-sm"
             >
-              {isSignUp ? '이미 계정이 있나요? 로그인' : '계정이 없나요? 회원가입'}
+              {isSignUp ? 'Already have an account? Log in' : "Don't have an account? Sign up"}
             </button>
           </div>
 
@@ -167,7 +167,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
               <div className="w-full border-t border-gray-300" />
             </div>
             <div className="relative flex justify-center text-sm">
-              <span className="px-2 bg-gray-50 text-gray-500">또는</span>
+              <span className="px-2 bg-gray-50 text-gray-500">Or</span>
             </div>
           </div>
 
@@ -184,7 +184,7 @@ export default function LoginForm({ onLoginSuccess }: LoginFormProps) {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              {isLoading ? '로그인 중...' : 'Google로 로그인'}
+              {isLoading ? 'Logging in...' : 'Log in with Google'}
             </button>
           </div>
         </form>

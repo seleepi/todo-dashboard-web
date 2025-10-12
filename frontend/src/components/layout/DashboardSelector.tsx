@@ -42,7 +42,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
       })))
     } catch (err) {
       console.error('Failed to load dashboards:', err)
-      setError('대시보드를 불러오는데 실패했습니다.')
+      setError('Failed to load dashboards.')
     } finally {
       setIsLoading(false)
     }
@@ -50,7 +50,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
 
   const createDashboard = async () => {
     if (!newDashboardName.trim()) {
-      setError('대시보드 이름을 입력해주세요.')
+      setError('Please enter a dashboard name.')
       return
     }
 
@@ -60,7 +60,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
 
       const user = pb.authStore.model
       if (!user) {
-        setError('사용자 인증이 필요합니다.')
+        setError('User authentication is required.')
         return
       }
 
@@ -80,11 +80,11 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
       setNewDashboardName('')
       setShowCreateForm(false)
 
-      // 새로 만든 대시보드로 바로 이동
+      // Navigate directly to the newly created dashboard
       onDashboardSelect(dashboardData)
     } catch (err) {
       console.error('Failed to create dashboard:', err)
-      setError('대시보드 생성에 실패했습니다.')
+      setError('Failed to create dashboard.')
     } finally {
       setIsCreating(false)
     }
@@ -106,7 +106,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
       setDeleteConfirmId(null)
     } catch (err) {
       console.error('Failed to delete dashboard:', err)
-      setError('대시보드 삭제에 실패했습니다.')
+      setError('Failed to delete dashboard.')
     } finally {
       setIsDeleting(false)
     }
@@ -115,7 +115,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-lg text-gray-700">대시보드를 불러오는 중...</div>
+        <div className="text-lg text-gray-700">Loading dashboards...</div>
       </div>
     )
   }
@@ -125,10 +125,10 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
       <div className="max-w-md mx-auto">
         <div className="text-center mb-8">
           <h2 className="text-3xl font-extrabold text-gray-900">
-            대시보드 선택
+            Select Dashboard
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            사용할 대시보드를 선택해주세요
+            Please select a dashboard to use
           </p>
         </div>
 
@@ -138,7 +138,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
           </div>
         )}
 
-        {/* 대시보드 생성 버튼 */}
+        {/* Dashboard creation button */}
         <div className="mb-6">
           {!showCreateForm ? (
             <button
@@ -149,14 +149,14 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
                 <svg className="mx-auto h-8 w-8 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
                 </svg>
-                새 대시보드 만들기
+                Create New Dashboard
               </div>
             </button>
           ) : (
             <div className="p-4 border border-gray-300 rounded-lg">
               <input
                 type="text"
-                placeholder="대시보드 이름을 입력하세요"
+                placeholder="Enter dashboard name"
                 value={newDashboardName}
                 onChange={(e) => setNewDashboardName(e.target.value)}
                 onKeyPress={(e) => {
@@ -174,7 +174,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
                   disabled={isCreating || !newDashboardName.trim()}
                   className="flex-1 py-2 px-4 bg-indigo-600 text-white rounded hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isCreating ? '생성 중...' : '생성'}
+                  {isCreating ? 'Creating...' : 'Create'}
                 </button>
                 <button
                   onClick={() => {
@@ -185,7 +185,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
                   disabled={isCreating}
                   className="px-4 py-2 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
-                  취소
+                  Cancel
                 </button>
               </div>
             </div>
@@ -195,8 +195,8 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
         <div className="space-y-4">
           {dashboards.length === 0 && !showCreateForm ? (
             <div className="text-center py-8 text-gray-500">
-              <p className="mb-4">사용 가능한 대시보드가 없습니다.</p>
-              <p className="text-sm">위의 버튼을 클릭해서 첫 번째 대시보드를 만들어보세요!</p>
+              <p className="mb-4">No dashboards available.</p>
+              <p className="text-sm">Click the button above to create your first dashboard!</p>
             </div>
           ) : (
             dashboards.map((dashboard) => (
@@ -229,7 +229,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
                     setDeleteConfirmId(dashboard.id)
                   }}
                   className="absolute top-2 right-2 p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
-                  title="삭제"
+                  title="Delete"
                 >
                   <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                     <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -245,7 +245,7 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
             onClick={handleLogout}
             className="text-sm text-indigo-600 hover:text-indigo-500"
           >
-            로그아웃
+            Logout
           </button>
         </div>
       </div>
@@ -255,10 +255,10 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-sm mx-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              대시보드 삭제
+              Delete Dashboard
             </h3>
             <p className="text-gray-600 mb-6">
-              정말 이 대시보드를 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.
+              Are you sure you want to delete this dashboard? This action cannot be undone.
             </p>
             <div className="flex gap-3">
               <button
@@ -266,14 +266,14 @@ export default function DashboardSelector({ onDashboardSelect, onLogout }: Dashb
                 disabled={isDeleting}
                 className="flex-1 py-2 px-4 bg-red-600 text-white rounded hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {isDeleting ? '삭제 중...' : '삭제'}
+                {isDeleting ? 'Deleting...' : 'Delete'}
               </button>
               <button
                 onClick={() => setDeleteConfirmId(null)}
                 disabled={isDeleting}
                 className="flex-1 py-2 px-4 border border-gray-300 text-gray-700 rounded hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50"
               >
-                취소
+                Cancel
               </button>
             </div>
           </div>

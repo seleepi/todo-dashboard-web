@@ -124,7 +124,7 @@ export function WidgetComponent({ widget, otherWidgets, onUpdate, onRemove }: Wi
 function getWidgetTitle(type: string): string {
   switch (type) {
     case 'todo': return 'TODO List';
-    case 'text': return 'Text & Photos';
+    case 'text': return 'Text';
     case 'clock-weather': return 'Clock & Weather';
     case 'youtube': return 'YouTube Player';
     default: return 'Widget';

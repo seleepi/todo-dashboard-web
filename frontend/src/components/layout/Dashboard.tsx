@@ -1,7 +1,7 @@
 'use client';
 
-// useState: 컴포넌트의 상태(데이터)를 저장, 변경되면 리렌더링. useRef: 값을 저장하되 변경되어도 리렌더링 x
-// memo: 컴포넌트 최적화(불필요한 재렌더링 방지)
+// useState: stores component state (data), triggers re-render on change. useRef: stores value but doesn't trigger re-render on change
+// memo: component optimization (prevents unnecessary re-renders)
 import { useState, useEffect, useRef, memo } from 'react';
 import { Widget, WidgetType, DashboardState } from '@/types/widget';
 import { WidgetComponent } from '@/components/widgets/WidgetComponent';
@@ -11,21 +11,21 @@ import Sidebar from '@/components/layout/Sidebar';
 import { getNextGridPosition, getDefaultWidgetSize } from '@/utils/grid';
 import { pb, realtimeHelpers, PocketBaseEvent } from '@/lib/pocketbase';
 
-// dashboard 객체의 구조 정의
+// Define structure of dashboard object
 interface Dashboard {
   id: string;
   name: string;
   background: string;
 }
-// dashboard 컴포넌트가 받는 입력값
-// Dashboard.tsx는 부모 컴포넌트(page.tsx)에게 대시보드 객체의 상태 감지 함수를 받고, 상태 변경이 일어날 시 보고 및 처리 위임
-// 이 때, 부모가 처리하는 것은 대시보드의 변경뿐으로, 대시보드 객체 내부의 상태(위젯, 사이드바 등)는 Dashboard.tsx에서 처리한다.
+// Input values received by dashboard component
+// Dashboard.tsx receives state monitoring functions from parent component (page.tsx), reports state changes and delegates handling
+// Parent handles only dashboard switching, while Dashboard.tsx handles internal state (widgets, sidebar, etc.)
 interface DashboardProps {
   dashboardId?: string; // ?: optional
-  initialState?: DashboardState;    // 현재 사용되지 않으므로 무시
+  initialState?: DashboardState;    // Currently unused, ignore
   currentDashboard?: Dashboard;
-  onDashboardChange?: (dashboard: Dashboard) => void;   // 사용자가 사이드바에서 다른 대시보드를 선택했을 때 부모 컴포넌트에게 알림
-  onLogout?: () => void;    // 로그아웃 버튼 눌렀을 때 처리를 부모 컴포넌트에게 위임
+  onDashboardChange?: (dashboard: Dashboard) => void;   // Notify parent component when user selects different dashboard from sidebar
+  onLogout?: () => void;    // Delegate logout button handling to parent component
 }
 
 function DashboardComponent({
@@ -36,19 +36,19 @@ function DashboardComponent({
   onLogout
 }: DashboardProps) {
   const [dashboardState, setDashboardState] = useState<DashboardState>({
-    widgets: initialState?.widgets || [],   // ?는 옵셔널 체이닝(initialState가 없으면 undefined 반환)
-    background: initialState?.background || '#f0f9ff',  // 현재 page가 initialstate를 주지 않으므로 모두 오른쪽
+    widgets: initialState?.widgets || [],   // ? is optional chaining (returns undefined if initialState doesn't exist)
+    background: initialState?.background || '#f0f9ff',  // Currently page doesn't provide initialState, so always uses right side
   });
   const [showGrid, setShowGrid] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const subscriptionRef = useRef<(() => void) | null>(null);    // 구독 취소 함수 저장, 컴포넌트 사라질 때 연결 끊는 용도
-  const pendingActionsRef = useRef<Set<string>>(new Set()); // 처리 중인 액션 id 목록을 저장. 액션을 서버에 전송 후 서버에게 알림 받을 때 체크하여 중복 업데이트 방지
+  const subscriptionRef = useRef<(() => void) | null>(null);    // Store unsubscribe function, used to disconnect when component unmounts
+  const pendingActionsRef = useRef<Set<string>>(new Set()); // Store list of action IDs being processed. Check when receiving server notification after sending action to prevent duplicate updates
 
 
-  // 컴포넌트가 처음 화면에 나타날 때, dashboardId가 변경될 때 실행
-  // 서버에서 대시보드 데이터 불러오기, 실시간 구독 설정, 구독 해제를 담당
+  // Execute when component first appears on screen or when dashboardId changes
+  // Responsible for loading dashboard data from server, setting up real-time subscription, and unsubscribing
   useEffect(() => {
     if (!dashboardId || initialState) {
       return;
@@ -56,7 +56,7 @@ function DashboardComponent({
 
     setIsLoading(true);
 
-    // 서버에서 대시보드/위젯 데이터 가져오기(비동기 함수)
+    // Fetch dashboard/widget data from server (async function)
     const loadDashboardData = async () => {
       try {
         const dashboard = await pb.collection('dashboards').getOne(dashboardId);
@@ -65,7 +65,7 @@ function DashboardComponent({
           sort: 'created'
         });
 
-        // 서버에 저장된 widget 데이터의 형식을 변환
+        // Convert format of widget data stored on server
         const loadedWidgets: Widget[] = widgets.map(widget => ({
           id: widget.id,
           type: widget.type as WidgetType,
@@ -80,33 +80,33 @@ function DashboardComponent({
           background: dashboard.background || '#f0f9ff'
         });
       } catch (error) {
-        console.error('대시보드 데이터 로드 실패:', error);
+        console.error('Failed to load dashboard data:', error);
       } finally {
         setIsLoading(false);
       }
     };
 
-    // 위젯 실시간 구독 - 서버가 변경을 감지하면 화면 업데이트, 비동기 작업
+    // Real-time widget subscription - update screen when server detects changes, async operation
     const setupRealTimeSubscription = async () => {
       try {
         const unsubscribe = await realtimeHelpers.subscribeToWidgets(
-          dashboardId,  // 구독 대상(어떤 대시보드를 구독할지)
-          (event: PocketBaseEvent) => { // 이벤트가 발생할 때마다 실행되는 콜백 함수(이벤트 처리 코드)
-            console.log('실시간 이벤트:', event);
+          dashboardId,  // Subscription target (which dashboard to subscribe to)
+          (event: PocketBaseEvent) => { // Callback function executed whenever event occurs (event handling code)
+            console.log('Real-time event:', event);
 
             if (event.record.dashboard !== dashboardId) {
               return;
             }
-            // 본인이 방금 한 액션이면 무시 (중복 방지)
+            // Ignore if it's own action just performed (prevent duplication)
             if (pendingActionsRef.current.has(event.record.id)) {
-              console.log('본인 액션 감지, 중복 업데이트 방지:', event.record.id);
+              console.log('Own action detected, preventing duplicate update:', event.record.id);
               pendingActionsRef.current.delete(event.record.id);
               return;
             }
 
             switch (event.action) {
               case 'create':
-                // 서버에서 받은 데이터를 앱에서 사용하기 위한 형식으로 변환
+                // Convert data received from server to format used by app
                 const newWidget: Widget = {
                   id: event.record.id,
                   type: event.record.type as WidgetType,
@@ -118,11 +118,11 @@ function DashboardComponent({
 
                 setDashboardState(prev => {
                   if (prev.widgets.find(w => w.id === newWidget.id)) {
-                    return prev;    // 중복체크, 이미 같은 id의 위젯이 있으면 추가하지 않음
+                    return prev;    // Duplicate check, don't add if widget with same id already exists
                   }
                   return {
                     ...prev,
-                    widgets: [...prev.widgets, newWidget]   // 기존 DashboardState의 widgets를 덮어쓰고 (새 위젯 추가) 새 객체 리턴 - 화면 업데이트
+                    widgets: [...prev.widgets, newWidget]   // Overwrite widgets in existing DashboardState (add new widget) and return new object - update screen
                   };
                 });
                 break;
@@ -140,7 +140,7 @@ function DashboardComponent({
                 setDashboardState(prev => ({
                   ...prev,
                   widgets: prev.widgets.map(w =>
-                    w.id === updatedWidget.id ? updatedWidget : w   // 업데이트된 위젯 id면 교체
+                    w.id === updatedWidget.id ? updatedWidget : w   // Replace if it's the updated widget id
                   )
                 }));
                 break;
@@ -148,7 +148,7 @@ function DashboardComponent({
               case 'delete':
                 setDashboardState(prev => ({
                   ...prev,
-                  widgets: prev.widgets.filter(w => w.id !== event.record.id)   // 제거된 id 외의 위젯을 리턴
+                  widgets: prev.widgets.filter(w => w.id !== event.record.id)   // Return widgets except the deleted id
                 }));
                 break;
             }
@@ -157,7 +157,7 @@ function DashboardComponent({
 
         subscriptionRef.current = unsubscribe;
       } catch (error) {
-        console.error('실시간 구독 설정 실패:', error);
+        console.error('Failed to setup real-time subscription:', error);
       }
     };
 
@@ -167,15 +167,15 @@ function DashboardComponent({
     // cleanup
     return () => {
       if (subscriptionRef.current) {
-        subscriptionRef.current();  // 구독 해제
+        subscriptionRef.current();  // Unsubscribe
         subscriptionRef.current = null;
       }
-      pendingActionsRef.current.clear();    // 대기 중인 작업 삭제
+      pendingActionsRef.current.clear();    // Delete pending operations
     };
-  }, [dashboardId, initialState]);  // dashboard를 선택할 때마다 실행
+  }, [dashboardId, initialState]);  // Execute whenever dashboard is selected
 
 
-  // 위젯을 서버에 저장하거나 업데이트하는 함수
+  // Function to save or update widget on server
   const saveWidgetToPocketBase = async (widget: Widget) => {
     if (!dashboardId) return;
 
@@ -191,10 +191,10 @@ function DashboardComponent({
         collapsed: widget.collapsed || false
       };
 
-      if (widget.id.startsWith('tmp-')) {    // 'tmp-'은 addWidget 메서드에서 생성한 임시 아이디 - 아직 서버에 등록되지 않은 위젯을 의미
-        pendingActionsRef.current.add(widget.id);
+      if (widget.id.startsWith('tmp-')) {    // 'tmp-' is temporary ID created by addWidget method - indicates widget not yet registered on server
+        pendingActionsRef.current.add(widget.id);   // Optimistic UI Update: immediate re-render with temporary ID in addWidget - re-render again after receiving actual id
 
-        // pocketbase에 새 위젯의 레코드 생성 후 해당 레코드 반환
+        // Create new widget record in pocketbase and return the record
         const record = await pb.collection('widgets').create(widgetData);
 
         pendingActionsRef.current.delete(widget.id);
@@ -203,7 +203,7 @@ function DashboardComponent({
         setDashboardState(prev => ({
           ...prev,
           widgets: prev.widgets.map(w =>
-            w.id === widget.id ? { ...w, id: record.id } : w    // tmp id를 실제 id로 변경 (변경사항의 로컬 반영 상태 -> 서버 업데이트 상태)
+            w.id === widget.id ? { ...w, id: record.id } : w    // Change tmp id to actual id (local state of changes -> server update state)
           )
         }));
 
@@ -211,17 +211,17 @@ function DashboardComponent({
           pendingActionsRef.current.delete(record.id);
         }, 1000);
 
-      } else {  // 새 위젯이 아니라 기존 위젯이라면: 업데이트
+      } else {  // If existing widget, not new widget: update
         pendingActionsRef.current.add(widget.id);
-        // 로컬 업데이트와 재렌더링은 updateWidget 메서드에서 완료 - id가 같으므로 추가 랜더링 불필요
-        await pb.collection('widgets').update(widget.id, widgetData);   // 서버 업데이트만 수행
+        // Local update and re-render completed in updateWidget method - no additional rendering needed since id is same
+        await pb.collection('widgets').update(widget.id, widgetData);   // Only perform server update
 
         setTimeout(() => {
           pendingActionsRef.current.delete(widget.id);
         }, 1000);
       }
     } catch (error) {
-      console.error('위젯 저장 실패:', error);
+      console.error('Failed to save widget:', error);
       pendingActionsRef.current.delete(widget.id);
     }
   };
@@ -232,13 +232,14 @@ function DashboardComponent({
     const size = getDefaultWidgetSize(type);
 
     const newWidget: Widget = {
-      id: `tmp-${Date.now()}`,
+      id: `tmp-${Date.now()}`,  // temp id
       type,
       position,
       size,
       data: {}
     };
 
+    // Optimistic UI Update: immediate re-render with temporary ID for user experience - re-render again in SaveWidgetToPocketBase after receiving actual id
     setDashboardState(prev => ({
       ...prev,
       widgets: [...prev.widgets, newWidget]
@@ -249,38 +250,38 @@ function DashboardComponent({
 
 
   const removeWidget = async (widgetId: string) => {
-    setDashboardState(prev => ({
+    setDashboardState(prev => ({    // Immediately remove from screen
       ...prev,
       widgets: prev.widgets.filter(w => w.id !== widgetId)
     }));
 
-    if (!widgetId.startsWith('tmp-')) {
+    if (!widgetId.startsWith('tmp-')) { // If temporary widget, no need to request server
       try {
         pendingActionsRef.current.add(widgetId);
-        await pb.collection('widgets').delete(widgetId);
+        await pb.collection('widgets').delete(widgetId);    // Request deletion from server
 
         setTimeout(() => {
           pendingActionsRef.current.delete(widgetId);
         }, 1000);
       } catch (error) {
-        console.error('위젯 삭제 실패:', error);
+        console.error('Failed to delete widget:', error);
         pendingActionsRef.current.delete(widgetId);
       }
     }
   };
 
-
+  // Function to update widget when its information is modified
   const updateWidget = async (widgetId: string, updates: Partial<Widget>) => {
     const currentWidget = dashboardState.widgets.find(w => w.id === widgetId);
 
-    setDashboardState(prev => ({
+    setDashboardState(prev => ({    // Update local state
       ...prev,
       widgets: prev.widgets.map(w =>
         w.id === widgetId ? { ...w, ...updates } : w
       )
     }));
 
-    if (currentWidget) {
+    if (currentWidget) {    // Previous widget + changes -> update server
       const updatedWidget = { ...currentWidget, ...updates };
       await saveWidgetToPocketBase(updatedWidget);
     }
@@ -296,7 +297,7 @@ function DashboardComponent({
         <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-50">
           <div className="flex flex-col items-center gap-3">
             <div className="w-12 h-12 border-4 border-gray-200 border-t-indigo-600 rounded-full animate-spin"></div>
-            <div className="text-lg text-gray-700">대시보드를 불러오는 중...</div>
+            <div className="text-lg text-gray-700">Loading dashboard...</div>
           </div>
         </div>
       )}
@@ -307,7 +308,7 @@ function DashboardComponent({
             <button
               onClick={() => setSidebarOpen(true)}
               className="p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-              title="메뉴 열기"
+              title="Open menu"
             >
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
