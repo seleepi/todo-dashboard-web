@@ -286,20 +286,21 @@ function DashboardComponent({
     }
   };
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
-        <div className="text-lg text-gray-700">대시보드를 불러오는 중...</div>
-      </div>
-    );
-  }
-
-
   return (
     <div
       className="min-h-screen relative overflow-hidden"
       style={{ backgroundColor: dashboardState.background }}
     >
+      {/* Loading Overlay */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-white/90 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-12 h-12 border-4 border-gray-200 border-t-indigo-600 rounded-full animate-spin"></div>
+            <div className="text-lg text-gray-700">대시보드를 불러오는 중...</div>
+          </div>
+        </div>
+      )}
+
       <header className="fixed top-0 left-0 right-0 z-50 p-4 bg-white/90 backdrop-blur-sm border-b shadow-sm">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-3">
